@@ -10,6 +10,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 from .bootstrap import detect_bootstrap
+from .benchmark import load_manifest, read_results, run_task, write_report, write_results
 from .models import ChangeSet
 from .reporting import issue_comment
 from .workflows import IssueProver, ReproductionProposal, UpgradeProposal, UpgradeVerifier
@@ -63,6 +64,32 @@ def cmd_upgrade(args: argparse.Namespace) -> int:
     return 0 if bundle.verdict.value in {"REPRODUCED", "NOT_A_BUG"} else 1
 
 
+def cmd_benchmark_validate(args: argparse.Namespace) -> int:
+    tasks = load_manifest(Path(args.manifest))
+    ready = sum(task.status == "ready" for task in tasks)
+    print(json.dumps({"tasks": len(tasks), "ready": ready, "candidates": len(tasks) - ready, "read_only": True}, indent=2))
+    return 0
+
+
+def cmd_benchmark_run(args: argparse.Namespace) -> int:
+    tasks = load_manifest(Path(args.manifest))
+    selected = [task for task in tasks if task.status == "ready" and (args.task in {"all", task.id})]
+    if not selected:
+        print("No ready benchmark tasks selected. Candidate metadata is intentionally not cloned or executed.", file=sys.stderr)
+        return 2
+    results = [run_task(task) for task in selected]
+    write_results(results, Path(args.output))
+    print(json.dumps({"output": args.output, "tasks": len(results), "read_only": True}, indent=2))
+    return 0 if all(result.verdict == "VALID" for result in results) else 1
+
+
+def cmd_benchmark_report(args: argparse.Namespace) -> int:
+    results = read_results(Path(args.results))
+    write_report(results, Path(args.output))
+    print(json.dumps({"report": args.output, "tasks": len(results), "read_only": True}, indent=2))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="reprove", description="No fix without a failing test.")
     subs = parser.add_subparsers(dest="subcommand", required=True)
@@ -78,6 +105,14 @@ def main(argv: list[str] | None = None) -> int:
     reproduce = subs.add_parser("reproduce", help="Execute evidence tests against a bug claim."); evidence_args(reproduce); reproduce.set_defaults(func=cmd_reproduce)
     verify = subs.add_parser("verify-fix", help="Enforce gates around a proposed source-only fix."); evidence_args(verify); verify.add_argument("--change", required=True); verify.add_argument("--nearby"); verify.set_defaults(func=cmd_verify_fix)
     upgrade = subs.add_parser("upgrade", help="Run old-behavior canaries through a dependency bump."); upgrade.add_argument("--repo", default="."); upgrade.add_argument("--upgrade", required=True); upgrade.add_argument("--nearby"); upgrade.set_defaults(func=cmd_upgrade)
+    benchmark = subs.add_parser("benchmark", help="Read-only benchmark validation and execution; never writes to remote repositories.")
+    benchmark_subs = benchmark.add_subparsers(dest="benchmark_command", required=True)
+    validate = benchmark_subs.add_parser("validate", help="Validate candidate/ready task metadata without cloning.")
+    validate.add_argument("manifest"); validate.set_defaults(func=cmd_benchmark_validate)
+    run = benchmark_subs.add_parser("run", help="Run only local, pinned ready worktrees in disposable copies.")
+    run.add_argument("manifest"); run.add_argument("--task", default="all"); run.add_argument("--output", default="artifacts/evaluation/results.jsonl"); run.set_defaults(func=cmd_benchmark_run)
+    report = benchmark_subs.add_parser("report", help="Render a local JSON and Markdown report from result JSONL.")
+    report.add_argument("results"); report.add_argument("--output", default="artifacts/evaluation/report.json"); report.set_defaults(func=cmd_benchmark_report)
     args = parser.parse_args(argv)
     return args.func(args)
 

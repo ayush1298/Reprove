@@ -1,4 +1,6 @@
-from reprove.github import GitHubClient
+import pytest
+
+from reprove.github import GitHubClient, parse_public_issue_url
 
 
 class FakeGitHub(GitHubClient):
@@ -25,3 +27,9 @@ def test_upsert_requires_reprove_branch():
         assert "reprove" in str(error)
     else:
         raise AssertionError("main write was not blocked")
+
+
+def test_public_issue_url_parser_rejects_pull_requests_and_noncanonical_urls():
+    assert parse_public_issue_url("https://github.com/pytest-dev/pytest/issues/11706") == ("pytest-dev/pytest", 11706)
+    with pytest.raises(ValueError, match="public GitHub issue URL"):
+        parse_public_issue_url("https://github.com/pytest-dev/pytest/pull/11706")

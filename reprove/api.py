@@ -29,6 +29,8 @@ from .runners import new_lease, token_hash
 from .security import require_control_plane_access
 from .audit import audit_pull_request
 from .models import EvidenceBundle, Verdict
+from .benchmark import READ_ONLY_GUARANTEE, load_manifest
+from .github import fetch_public_issue
 
 
 class OrganizationInput(BaseModel):
@@ -52,6 +54,10 @@ class IssueRunInput(BaseModel):
     test_command: list[str] = Field(default_factory=list, max_length=30)
     questions: list[str] = Field(default_factory=list, max_length=5)
     issue_number: int | None = Field(default=None, ge=1)
+
+
+class IssuePreviewInput(BaseModel):
+    issue_url: str = Field(min_length=30, max_length=500)
 
 
 class UpgradeRunInput(BaseModel):
@@ -266,6 +272,39 @@ def create_app(database_url: str | None = None, artifact_root: str | Path | None
             if run.verdict:
                 verdicts[run.verdict] = verdicts.get(run.verdict, 0) + 1
         return {"runs": [run_payload(run) for run in runs[:12]], "metrics": {"total_runs": len(runs), "completed": sum(run.status == "completed" for run in runs), "verdicts": verdicts, "average_confidence": round(sum(run.confidence for run in runs) / len(runs), 1) if runs else None, "retention_days": 30}}
+
+    @app.get("/v1/benchmarks")
+    def benchmarks():
+        """Expose intake metadata only; this endpoint cannot schedule external work."""
+        manifest = Path(__file__).parent.parent / "benchmarks" / "candidates.jsonl"
+        tasks = load_manifest(manifest) if manifest.exists() else []
+        return {
+            "read_only": True,
+            "guarantee": READ_ONLY_GUARANTEE,
+            "tasks": [{"id": task.id, "title": task.title, "repository": task.repository, "issue_url": task.issue_url, "status": task.status, "notes": task.notes} for task in tasks],
+        }
+
+    @app.post("/v1/github/issue-preview")
+    def github_issue_preview(payload: IssuePreviewInput):
+        """Read public issue metadata only; never creates any GitHub resource."""
+        try:
+            issue = fetch_public_issue(payload.issue_url)
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+        return {
+            "issue": {
+                "repository": issue.repository, "number": issue.number, "title": issue.title, "body": issue.body,
+                "html_url": issue.html_url, "state": issue.state, "labels": issue.labels, "author": issue.author, "updated_at": issue.updated_at,
+            },
+            "read_only": True,
+            "guarantee": "This preview uses one anonymous GitHub GET request. It cannot create branches, commits, pull requests, comments, labels, or issue updates.",
+            "stages": [
+                {"id": "intake", "title": "Issue intake", "status": "complete", "detail": "Public title, description, labels, and provenance captured."},
+                {"id": "review", "title": "Maintainer review", "status": "next", "detail": "Confirm the claim and choose a pinned local checkout."},
+                {"id": "design", "title": "Evidence design", "status": "blocked", "detail": "Choose a narrow test and command; source tests remain immutable."},
+                {"id": "execute", "title": "Isolated execution", "status": "blocked", "detail": "Run against the supplied local checkout and seal the evidence bundle."},
+            ],
+        }
 
     @app.post("/v1/github/webhooks", status_code=status.HTTP_202_ACCEPTED)
     async def github_webhook(request: Request, x_github_event: str = Header(default=""), x_hub_signature_256: str = Header(default="")):

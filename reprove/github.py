@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 import base64
 from dataclasses import dataclass
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
 
@@ -54,3 +56,54 @@ class GitHubClient:
         if not head.startswith("reprove/"):
             raise ValueError("Reprove may open pull requests only from reprove/* branches.")
         return self._request("POST", "/pulls", {"title": title, "body": body, "head": head, "base": base, "draft": True})
+
+
+@dataclass(frozen=True, slots=True)
+class PublicIssue:
+    """Public issue data obtained with a single anonymous GET request."""
+
+    repository: str
+    number: int
+    title: str
+    body: str
+    html_url: str
+    state: str
+    labels: list[str]
+    author: str | None
+    updated_at: str | None
+
+
+def parse_public_issue_url(issue_url: str) -> tuple[str, int]:
+    """Accept only canonical public GitHub issue URLs, never pull-request URLs."""
+    parsed = urlparse(issue_url)
+    parts = [part for part in parsed.path.split("/") if part]
+    if parsed.scheme != "https" or parsed.netloc != "github.com" or len(parts) != 4 or parts[2] != "issues" or not parts[3].isdigit():
+        raise ValueError("Use a public GitHub issue URL such as https://github.com/owner/repo/issues/123.")
+    return f"{parts[0]}/{parts[1]}", int(parts[3])
+
+
+def fetch_public_issue(issue_url: str, api_url: str = "https://api.github.com") -> PublicIssue:
+    """Fetch an issue with GET only; it sends no credential and has no write path."""
+    repository, number = parse_public_issue_url(issue_url)
+    request = Request(
+        f"{api_url}/repos/{repository}/issues/{number}",
+        method="GET",
+        headers={"Accept": "application/vnd.github+json", "User-Agent": "reprove-read-only-intake"},
+    )
+    try:
+        with urlopen(request, timeout=12) as response:  # nosec B310: fixed GitHub API origin
+            payload = json.loads(response.read())
+    except HTTPError as error:
+        if error.code == 404:
+            raise ValueError("Issue was not found or is not public.") from error
+        raise ValueError(f"GitHub returned HTTP {error.code} while reading the issue.") from error
+    except URLError as error:
+        raise ValueError("Could not reach GitHub. Check your connection and try again.") from error
+    if "pull_request" in payload:
+        raise ValueError("This URL resolves to a pull request; provide a GitHub issue instead.")
+    return PublicIssue(
+        repository=repository, number=number, title=payload.get("title") or f"Issue #{number}", body=payload.get("body") or "",
+        html_url=payload.get("html_url") or issue_url, state=payload.get("state") or "unknown",
+        labels=[label.get("name", "") for label in payload.get("labels", []) if label.get("name")],
+        author=payload.get("user", {}).get("login"), updated_at=payload.get("updated_at"),
+    )

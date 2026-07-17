@@ -6,6 +6,7 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 from reprove.api import create_app
+from reprove.github import PublicIssue
 
 
 def _fixture_repo(root: Path) -> None:
@@ -42,3 +43,29 @@ def test_api_persists_and_streams_an_issue_verdict(tmp_path):
         manifest = tmp_path / "artifacts" / run_id / "manifest.json"
         assert manifest.exists()
         assert len(json.loads(manifest.read_text())["sha256"]) == 64
+
+
+def test_benchmark_catalog_is_explicitly_read_only(tmp_path):
+    app = create_app("sqlite://", tmp_path / "artifacts")
+    with TestClient(app) as client:
+        response = client.get("/v1/benchmarks")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["read_only"] is True
+    assert "No remote writes" in payload["guarantee"]
+    assert all(task["status"] == "candidate" for task in payload["tasks"])
+
+
+def test_public_issue_preview_is_get_only_intake(tmp_path, monkeypatch):
+    monkeypatch.setattr("reprove.api.fetch_public_issue", lambda _: PublicIssue(
+        repository="pytest-dev/pytest", number=11706, title="Fixture teardown", body="Minimal example", html_url="https://github.com/pytest-dev/pytest/issues/11706",
+        state="closed", labels=["type: bug"], author="contributor", updated_at="2024-01-01T00:00:00Z",
+    ))
+    app = create_app("sqlite://", tmp_path / "artifacts")
+    with TestClient(app) as client:
+        response = client.post("/v1/github/issue-preview", json={"issue_url": "https://github.com/pytest-dev/pytest/issues/11706"})
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["read_only"] is True
+    assert payload["issue"]["repository"] == "pytest-dev/pytest"
+    assert [stage["id"] for stage in payload["stages"]] == ["intake", "review", "design", "execute"]
