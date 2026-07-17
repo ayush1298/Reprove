@@ -1,0 +1,13 @@
+# Reprove policy. Keep this in the target repository.
+autonomy: draft-pr
+supported_languages:
+  - python
+  - node
+determinism_runs: 5
+mutation_count: 3
+full_suite_timeout_seconds: 300
+protected_paths:
+  - .github/
+  - infra/
+  - secrets/
+

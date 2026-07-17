@@ -1,0 +1,34 @@
+name: Reprove evidence triage
+
+on:
+  issues:
+    types: [labeled]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  triage:
+    if: >-
+      (github.event_name == 'issues' && github.event.label.name == 'reprove') ||
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@reprove reproduce this'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install .
+      - name: Inspect supported tier
+        run: reprove inspect . || true
+      - name: Explain configured intake
+        run: |
+          echo "Reprove is installed. Configure an evidence proposal provider to execute issue triage."
+          echo "No repository secrets are passed to sandboxed test execution."

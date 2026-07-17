@@ -1,0 +1,15 @@
+Every coding agent can write a plausible fix. Reprove asks a different question: how do we know the fix is actually right?
+
+The problem is simple. A vague issue becomes a green pull request before anyone has proved the bug exists. The agent may have misunderstood the report, missed the boundary, or quietly weakened the test. Green does not automatically mean proven.
+
+Reprove reverses the order. It first bootstraps the repository from its own CI configuration, devcontainer, or supported conventions. It proposes native-framework evidence tests, then runs them against current main five times. If they do not fail deterministically, Reprove does not pretend. It returns Cannot Reproduce, Needs Info, Not a Bug, or Environment Unsupported, with the raw attempt log.
+
+Only after a claim is pinned does a fix loop begin. That loop is physically restricted to source files. Test paths and protected paths are rejected before apply, and a second diff linter rejects assertion deletions and skip markers.
+
+Here is our seeded issue. An export at the documented limit of one hundred records is rejected. The native pytest test fails five out of five times. A source-only inclusive-boundary patch makes the exact same test pass five out of five times. Reprove then mutates the changed operator back to the broken version; the evidence catches it. Neighboring regression tests stay green. The result is a 100 out of 100 objective confidence score and a draft-ready evidence bundle.
+
+The most important part of the demo is the refusal. A planted patch that deletes an assertion is rejected before it can touch the checkout. That is not a prompt instruction. It is an enforced gate.
+
+Reprove also verifies dependency upgrades. It creates behavior canaries that pin what an application observed under the old version. When a new dependency changes a silent default, the canary flips red even if the build still looks healthy.
+
+We will measure this honestly with gold-patch evaluation: generated evidence must fail on a known buggy commit and pass after the known real fix. Reproduce rate, validity, determinism, mutation survival, cost, and latency are all reported. Reprove is not a universal build system; it makes its limits visible. It is the evidence layer for the age of AI-written code.

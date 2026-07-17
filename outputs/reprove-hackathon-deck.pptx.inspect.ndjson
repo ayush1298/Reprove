@@ -1,0 +1,134 @@
+{"kind":"deck","id":"pr/60iu7c","name":"Deck"}
+{"kind":"layout","layoutId":"b8490d88-69ac-4ce5-8336-e8877a3a248d","name":"Master","type":"master"}
+{"kind":"layout","layoutId":"9dab430d-e876-4e43-ad93-82f5762c817e","name":"Title Slide","type":"title"}
+{"kind":"slide","id":"sl/9fh0iq","slide":1,"title":"REPROVE","textShapes":5}
+{"kind":"shape","id":"sh/tcjixovu","slide":1,"bbox":[54,54,8,612]}
+{"kind":"textbox","id":"sh/698jmtc3","slide":1,"text":"REPROVE","textPreview":"REPROVE","textChars":7,"textLines":1,"bbox":[88,92,400,24]}
+{"kind":"textbox","id":"sh/ra10vydo","slide":1,"text":"No fix without\na failing test.","textPreview":"No fix without | a failing test.","textChars":30,"textLines":2,"bbox":[88,177,760,220]}
+{"kind":"textbox","id":"sh/47q1kjux","slide":1,"text":"The evidence layer for AI-written maintenance work.","textPreview":"The evidence layer for AI-written maintenance work.","textChars":51,"textLines":1,"bbox":[92,440,650,40]}
+{"kind":"shape","id":"sh/58zitovi","slide":1,"bbox":[92,542,306,28]}
+{"kind":"textbox","id":"sh/i58ji9w7","slide":1,"text":"OPENAI BUILD WEEK · DEVELOPER TOOLS","textPreview":"OPENAI BUILD WEEK · DEVELOPER TOOLS","textChars":35,"textLines":1,"bbox":[102,549,286,14]}
+{"kind":"textbox","id":"sh/j6h0redc","slide":1,"text":"Proof before patch. Refusal is a valid outcome.","textPreview":"Proof before patch. Refusal is a valid outcome.","textChars":47,"textLines":1,"bbox":[92,597,610,25]}
+{"kind":"notes","id":"nt/9fh0iq","slide":1,"text":""}
+{"kind":"slide","id":"sl/yrscio","slide":2,"title":"REPROVE · VERIFICATION-FIRST MAINTENANCE","textShapes":11}
+{"kind":"textbox","id":"sh/d8vu94ra","slide":2,"text":"REPROVE · VERIFICATION-FIRST MAINTENANCE","textPreview":"REPROVE · VERIFICATION-FIRST MAINTENANCE","textChars":40,"textLines":1,"bbox":[54,34,680,20]}
+{"kind":"textbox","id":"sh/ql4bep8j","slide":2,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[1180,34,45,20]}
+{"kind":"shape","id":"sh/bmds7u94","slide":2,"bbox":[54,65,1172,1]}
+{"kind":"textbox","id":"sh/0b6tkjql","slide":2,"text":"Plausible fixes are not proof.","textPreview":"Plausible fixes are not proof.","textChars":30,"textLines":1,"bbox":[54,110,920,68]}
+{"kind":"textbox","id":"sh/lcfudor6","slide":2,"text":"Coding agents can jump from a vague claim straight to a green PR. That leaves maintainers to infer whether the bug was real—or whether the test was quietly weakened.","textPreview":"Coding agents can jump from a vague claim straight to a green PR. That leaves maintainers to infer whether the bug was real—or whether th...","textChars":165,"textLines":1,"bbox":[54,198,1050,58]}
+{"kind":"shape","id":"sh/y94bi98v","slide":2,"bbox":[54,330,340,205]}
+{"kind":"shape","id":"sh/zaxcbe90","slide":2,"bbox":[54,330,5,205]}
+{"kind":"textbox","id":"sh/gf2t8fqh","slide":2,"text":"Claim","textPreview":"Claim","textChars":5,"textLines":1,"bbox":[78,352,300,32]}
+{"kind":"textbox","id":"sh/1gba1kr2","slide":2,"text":"“Exports at exactly 100 records are rejected.”","textPreview":"“Exports at exactly 100 records are rejected.”","textChars":46,"textLines":1,"bbox":[78,399,298,123]}
+{"kind":"shape","id":"sh/pwj2xcbm","slide":2,"bbox":[470,330,340,205]}
+{"kind":"shape","id":"sh/ovalo7uh","slide":2,"bbox":[470,330,5,205]}
+{"kind":"textbox","id":"sh/3uhkv2tw","slide":2,"text":"Typical agent","textPreview":"Typical agent","textChars":13,"textLines":1,"bbox":[494,352,300,32]}
+{"kind":"textbox","id":"sh/2t83mxcb","slide":2,"text":"Writes a patch, changes a test if needed, and reports green.","textPreview":"Writes a patch, changes a test if needed, and reports green.","textChars":60,"textLines":1,"bbox":[494,399,298,123]}
+{"kind":"shape","id":"sh/d0jm1cby","slide":2,"bbox":[886,330,340,205]}
+{"kind":"shape","id":"sh/czalsrud","slide":2,"bbox":[886,330,5,205]}
+{"kind":"textbox","id":"sh/by1kzmts","slide":2,"text":"Reprove","textPreview":"Reprove","textChars":7,"textLines":1,"bbox":[910,352,300,32]}
+{"kind":"textbox","id":"sh/qxs3qhc7","slide":2,"text":"Pins the claim as executable evidence before any patch exists.","textPreview":"Pins the claim as executable evidence before any patch exists.","textChars":62,"textLines":1,"bbox":[910,399,298,123]}
+{"kind":"textbox","id":"sh/lo3m5wbu","slide":2,"text":"Trust should come from a repeatable run—not a confident summary.","textPreview":"Trust should come from a repeatable run—not a confident summary.","textChars":64,"textLines":1,"bbox":[54,602,820,28]}
+{"kind":"notes","id":"nt/yrscio","slide":2,"text":""}
+{"kind":"slide","id":"sl/hue0ch","slide":3,"title":"REPROVE · VERIFICATION-FIRST MAINTENANCE","textShapes":19}
+{"kind":"textbox","id":"sh/pkvmtorq","slide":3,"text":"REPROVE · VERIFICATION-FIRST MAINTENANCE","textPreview":"REPROVE · VERIFICATION-FIRST MAINTENANCE","textChars":40,"textLines":1,"bbox":[54,34,680,20]}
+{"kind":"textbox","id":"sh/2xk3itsz","slide":3,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[1180,34,45,20]}
+{"kind":"shape","id":"sh/3yd4ry9k","slide":3,"bbox":[54,65,1172,1]}
+{"kind":"textbox","id":"sh/gv2lgjat","slide":3,"text":"A hard-gated path from claim to evidence.","textPreview":"A hard-gated path from claim to evidence.","textChars":41,"textLines":1,"bbox":[54,108,1040,62]}
+{"kind":"shape","id":"sh/hwbmpore","slide":3,"bbox":[54,305,236,180]}
+{"kind":"textbox","id":"sh/utk3e9s3","slide":3,"text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[74,325,40,26]}
+{"kind":"textbox","id":"sh/vut4ne98","slide":3,"text":"Bootstrap","textPreview":"Bootstrap","textChars":9,"textLines":1,"bbox":[74,367,200,28]}
+{"kind":"textbox","id":"sh/0r65s3ad","slide":3,"text":"Replay CI, devcontainer, then conventions. Unsupported is explicit.","textPreview":"Replay CI, devcontainer, then conventions. Unsupported is explicit.","textChars":67,"textLines":1,"bbox":[74,410,196,54]}
+{"kind":"textbox","id":"sh/1sfm18ri","slide":3,"text":"→","textPreview":"→","textChars":1,"textLines":1,"bbox":[304,375,32,32]}
+{"kind":"shape","id":"sh/9cvqhoza","slide":3,"bbox":[350,305,236,180]}
+{"kind":"textbox","id":"sh/obm9ojip","slide":3,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[370,325,40,26]}
+{"kind":"textbox","id":"sh/nad8fehk","slide":3,"text":"Evidence","textPreview":"Evidence","textChars":8,"textLines":1,"bbox":[370,367,200,28]}
+{"kind":"textbox","id":"sh/m94rm90z","slide":3,"text":"Native tests must fail 5/5 on current main.","textPreview":"Native tests must fail 5/5 on current main.","textChars":43,"textLines":1,"bbox":[370,410,196,54]}
+{"kind":"textbox","id":"sh/18vqd4ze","slide":3,"text":"→","textPreview":"→","textChars":1,"textLines":1,"bbox":[600,375,32,32]}
+{"kind":"shape","id":"sh/07m9kjit","slide":3,"bbox":[646,305,236,180]}
+{"kind":"textbox","id":"sh/z6d8beh8","slide":3,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[666,325,40,26]}
+{"kind":"textbox","id":"sh/e5kri90n","slide":3,"text":"Fix boundary","textPreview":"Fix boundary","textChars":12,"textLines":1,"bbox":[666,367,200,28]}
+{"kind":"textbox","id":"sh/l4fap8zi","slide":3,"text":"Source-only proposal. Test edits and weakening are rejected.","textPreview":"Source-only proposal. Test edits and weakening are rejected.","textChars":60,"textLines":1,"bbox":[666,410,196,54]}
+{"kind":"textbox","id":"sh/k369w3ix","slide":3,"text":"→","textPreview":"→","textChars":1,"textLines":1,"bbox":[896,375,32,32]}
+{"kind":"shape","id":"sh/47ets7q9","slide":3,"bbox":[942,305,236,180]}
+{"kind":"textbox","id":"sh/58nu1c7u","slide":3,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[962,325,40,26]}
+{"kind":"textbox","id":"sh/i5wbqh83","slide":3,"text":"Evidence bundle","textPreview":"Evidence bundle","textChars":15,"textLines":1,"bbox":[962,367,200,28]}
+{"kind":"textbox","id":"sh/j65cz2po","slide":3,"text":"Logs, mutation checks, regressions, confidence, and a draft PR.","textPreview":"Logs, mutation checks, regressions, confidence, and a draft PR.","textChars":63,"textLines":1,"bbox":[962,410,196,54]}
+{"kind":"textbox","id":"sh/wjeto7qd","slide":3,"text":"The model may propose; only execution may promote a claim to evidence.","textPreview":"The model may propose; only execution may promote a claim to evidence.","textChars":70,"textLines":1,"bbox":[54,588,980,30]}
+{"kind":"notes","id":"nt/hue0ch","slide":3,"text":""}
+{"kind":"slide","id":"sl/vavvbt","slide":4,"title":"ISSUE PROVER · SEEDED LIVE DEMO","textShapes":18}
+{"kind":"textbox","id":"sh/nuhg3i1o","slide":4,"text":"ISSUE PROVER · SEEDED LIVE DEMO","textPreview":"ISSUE PROVER · SEEDED LIVE DEMO","textChars":31,"textLines":1,"bbox":[54,34,680,20]}
+{"kind":"textbox","id":"sh/8vqhwn29","slide":4,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[1180,34,45,20]}
+{"kind":"shape","id":"sh/9wzy5sje","slide":4,"bbox":[54,65,1172,1]}
+{"kind":"textbox","id":"sh/ax8zyxkz","slide":4,"text":"One native test closes the loop.","textPreview":"One native test closes the loop.","textChars":32,"textLines":1,"bbox":[54,108,900,60]}
+{"kind":"textbox","id":"sh/vyh07i1k","slide":4,"text":"Issue #42: exports at the inclusive documented limit","textPreview":"Issue #42: exports at the inclusive documented limit","textChars":52,"textLines":1,"bbox":[54,188,900,30]}
+{"kind":"shape","id":"sh/wjqh0n25","slide":4,"bbox":[54,270,720,47]}
+{"kind":"shape","id":"sh/xkji9sjq","slide":4,"bbox":[54,270,8,47]}
+{"kind":"textbox","id":"sh/q1ozmtkv","slide":4,"text":"Fail on main","textPreview":"Fail on main","textChars":12,"textLines":1,"bbox":[82,283,310,20]}
+{"kind":"textbox","id":"sh/r2xgvylg","slide":4,"text":"5 / 5 RED","textPreview":"5 / 5 RED","textChars":9,"textLines":1,"bbox":[548,284,198,18]}
+{"kind":"shape","id":"sh/7ul8nyh4","slide":4,"bbox":[54,332,720,47]}
+{"kind":"shape","id":"sh/6tc7etgj","slide":4,"bbox":[54,332,8,47]}
+{"kind":"textbox","id":"sh/twnqpoza","slide":4,"text":"Fix boundary","textPreview":"Fix boundary","textChars":12,"textLines":1,"bbox":[82,345,310,20]}
+{"kind":"textbox","id":"sh/svupg3yp","slide":4,"text":"TESTS IMMUTABLE","textPreview":"TESTS IMMUTABLE","textChars":15,"textLines":1,"bbox":[548,346,198,18]}
+{"kind":"shape","id":"sh/jqlojehs","slide":4,"bbox":[54,394,720,47]}
+{"kind":"shape","id":"sh/ipc7a9gn","slide":4,"bbox":[54,394,8,47]}
+{"kind":"textbox","id":"sh/5s3qlozy","slide":4,"text":"Pass after fix","textPreview":"Pass after fix","textChars":14,"textLines":1,"bbox":[82,407,310,20]}
+{"kind":"textbox","id":"sh/krupcjyd","slide":4,"text":"5 / 5 GREEN","textPreview":"5 / 5 GREEN","textChars":11,"textLines":1,"bbox":[548,408,198,18]}
+{"kind":"shape","id":"sh/v21ofehw","slide":4,"bbox":[54,456,720,47]}
+{"kind":"shape","id":"sh/a1s769gb","slide":4,"bbox":[54,456,8,47]}
+{"kind":"textbox","id":"sh/yxsri9k3","slide":4,"text":"Micro-mutation","textPreview":"Micro-mutation","textChars":14,"textLines":1,"bbox":[82,469,310,20]}
+{"kind":"textbox","id":"sh/zy18ru1o","slide":4,"text":"1 / 1 KILLED","textPreview":"1 / 1 KILLED","textChars":12,"textLines":1,"bbox":[548,470,198,18]}
+{"kind":"shape","id":"sh/0za9kz29","slide":4,"bbox":[54,518,720,47]}
+{"kind":"shape","id":"sh/l0jqt4ju","slide":4,"bbox":[54,518,8,47]}
+{"kind":"textbox","id":"sh/m1srm9kf","slide":4,"text":"Blast radius","textPreview":"Blast radius","textChars":12,"textLines":1,"bbox":[82,531,310,20]}
+{"kind":"textbox","id":"sh/n218ve10","slide":4,"text":"CLEAN","textPreview":"CLEAN","textChars":5,"textLines":1,"bbox":[548,532,198,18]}
+{"kind":"shape","id":"sh/8na9ojil","slide":4,"bbox":[842,270,384,295]}
+{"kind":"textbox","id":"sh/9ojqxojq","slide":4,"text":"100","textPreview":"100","textChars":3,"textLines":1,"bbox":[873,312,270,76]}
+{"kind":"textbox","id":"sh/apcrqt0b","slide":4,"text":"objective confidence","textPreview":"objective confidence","textChars":20,"textLines":1,"bbox":[876,390,260,28]}
+{"kind":"textbox","id":"sh/vql8ze1w","slide":4,"text":"Same evidence test\nnever touched by fixer.","textPreview":"Same evidence test | never touched by fixer.","textChars":42,"textLines":2,"bbox":[876,457,270,58]}
+{"kind":"textbox","id":"sh/5w725c7a","slide":4,"text":"Artifact: issue comment + draft PR body + raw logs","textPreview":"Artifact: issue comment + draft PR body + raw logs","textChars":50,"textLines":1,"bbox":[54,618,940,26]}
+{"kind":"notes","id":"nt/vavvbt","slide":4,"text":""}
+{"kind":"slide","id":"sl/bazmxj","slide":5,"title":"REPROVE · VERIFICATION-FIRST MAINTENANCE","textShapes":10}
+{"kind":"textbox","id":"sh/07qxk3el","slide":5,"text":"REPROVE · VERIFICATION-FIRST MAINTENANCE","textPreview":"REPROVE · VERIFICATION-FIRST MAINTENANCE","textChars":40,"textLines":1,"bbox":[54,34,680,20]}
+{"kind":"textbox","id":"sh/z6xwbix0","slide":5,"text":"05","textPreview":"05","textChars":2,"textLines":1,"bbox":[1180,34,45,20]}
+{"kind":"shape","id":"sh/e5ovidgf","slide":5,"bbox":[54,65,1172,1]}
+{"kind":"textbox","id":"sh/9wzehsf2","slide":5,"text":"The standout moment is a refusal.","textPreview":"The standout moment is a refusal.","textChars":33,"textLines":1,"bbox":[54,108,1080,60]}
+{"kind":"shape","id":"sh/ovqxoneh","slide":5,"bbox":[54,230,536,265]}
+{"kind":"shape","id":"sh/nuhwfixc","slide":5,"bbox":[54,230,5,265]}
+{"kind":"textbox","id":"sh/m98fmdwr","slide":5,"text":"Cheating patch","textPreview":"Cheating patch","textChars":14,"textLines":1,"bbox":[78,252,496,32]}
+{"kind":"textbox","id":"sh/x0jelsfe","slide":5,"text":"A planted patch deletes an assertion. Reprove blocks it before apply—path guard plus diff linter.","textPreview":"A planted patch deletes an assertion. Reprove blocks it before apply—path guard plus diff linter.","textChars":97,"textLines":1,"bbox":[78,299,494,183]}
+{"kind":"shape","id":"sh/wzaxsnet","slide":5,"bbox":[78,430,210,28]}
+{"kind":"textbox","id":"sh/m587yhgb","slide":5,"text":"REJECTED BEFORE APPLY","textPreview":"REJECTED BEFORE APPLY","textChars":21,"textLines":1,"bbox":[88,437,190,14]}
+{"kind":"shape","id":"sh/761ormhg","slide":5,"bbox":[690,230,536,265]}
+{"kind":"shape","id":"sh/87ap0ry1","slide":5,"bbox":[690,230,5,265]}
+{"kind":"textbox","id":"sh/9sj6twzm","slide":5,"text":"Silent upgrade break","textPreview":"Silent upgrade break","textChars":20,"textLines":1,"bbox":[714,252,496,32]}
+{"kind":"textbox","id":"sh/uts721g7","slide":5,"text":"A v1 behavior canary passes five times, then flips red after a v2 default changes. Existing build stays structurally valid.","textPreview":"A v1 behavior canary passes five times, then flips red after a v2 default changes. Existing build stays structurally valid.","textChars":123,"textLines":1,"bbox":[714,299,494,183]}
+{"kind":"shape","id":"sh/vu1ov6hs","slide":5,"bbox":[714,430,174,28]}
+{"kind":"textbox","id":"sh/wvap4byd","slide":5,"text":"CANARY FLIPPED","textPreview":"CANARY FLIPPED","textChars":14,"textLines":1,"bbox":[724,437,154,14]}
+{"kind":"textbox","id":"sh/hwjqxwzy","slide":5,"text":"Every other agent optimizes for change shipped. Reprove optimizes for claims proven.","textPreview":"Every other agent optimizes for change shipped. Reprove optimizes for claims proven.","textChars":84,"textLines":1,"bbox":[54,590,1070,28]}
+{"kind":"notes","id":"nt/bazmxj","slide":5,"text":""}
+{"kind":"slide","id":"sl/4s049u","slide":6,"title":"EVALUATION & ROADMAP","textShapes":14}
+{"kind":"textbox","id":"sh/jud0bup8","slide":6,"text":"EVALUATION & ROADMAP","textPreview":"EVALUATION & ROADMAP","textChars":20,"textLines":1,"bbox":[54,34,680,20]}
+{"kind":"textbox","id":"sh/4vmhkz6t","slide":6,"text":"06","textPreview":"06","textChars":2,"textLines":1,"bbox":[1180,34,45,20]}
+{"kind":"shape","id":"sh/5wvid47e","slide":6,"bbox":[54,65,1172,1]}
+{"kind":"textbox","id":"sh/6x4jmpoz","slide":6,"text":"Make trust measurable—and make limits visible.","textPreview":"Make trust measurable—and make limits visible.","textChars":46,"textLines":1,"bbox":[54,108,1100,60]}
+{"kind":"textbox","id":"sh/ryd0fupk","slide":6,"text":"Gold-patch scoring: evidence must fail on the buggy commit and pass after the known real fix.","textPreview":"Gold-patch scoring: evidence must fail on the buggy commit and pass after the known real fix.","textChars":93,"textLines":1,"bbox":[54,185,1040,30]}
+{"kind":"shape","id":"sh/szm1oz65","slide":6,"bbox":[54,270,550,118]}
+{"kind":"shape","id":"sh/t0vih47q","slide":6,"bbox":[54,270,5,118]}
+{"kind":"textbox","id":"sh/m10za5ov","slide":6,"text":"Reproduce rate","textPreview":"Reproduce rate","textChars":14,"textLines":1,"bbox":[78,292,510,32]}
+{"kind":"textbox","id":"sh/72t03ap0","slide":6,"text":"Did at least one test fail on the buggy commit?","textPreview":"Did at least one test fail on the buggy commit?","textChars":47,"textLines":1,"bbox":[78,339,508,36]}
+{"kind":"shape","id":"sh/7u1gfu5o","slide":6,"bbox":[640,270,550,118]}
+{"kind":"shape","id":"sh/6tsf6p43","slide":6,"bbox":[640,270,5,118]}
+{"kind":"textbox","id":"sh/twjyh4nu","slide":6,"text":"Validity rate","textPreview":"Validity rate","textChars":13,"textLines":1,"bbox":[664,292,510,32]}
+{"kind":"textbox","id":"sh/svax8zm9","slide":6,"text":"Did reproduced evidence pass under the gold patch?","textPreview":"Did reproduced evidence pass under the gold patch?","textChars":50,"textLines":1,"bbox":[664,339,508,36]}
+{"kind":"shape","id":"sh/jqhgba5s","slide":6,"bbox":[54,420,550,118]}
+{"kind":"shape","id":"sh/ip8f2p47","slide":6,"bbox":[54,420,5,118]}
+{"kind":"textbox","id":"sh/5sjydkni","slide":6,"text":"Determinism","textPreview":"Determinism","textChars":11,"textLines":1,"bbox":[78,442,510,32]}
+{"kind":"textbox","id":"sh/krax4fmd","slide":6,"text":"Do five runs agree?","textPreview":"Do five runs agree?","textChars":19,"textLines":1,"bbox":[78,489,508,36]}
+{"kind":"shape","id":"sh/v2hg7a5g","slide":6,"bbox":[640,420,550,118]}
+{"kind":"shape","id":"sh/a18fy54v","slide":6,"bbox":[640,420,5,118]}
+{"kind":"textbox","id":"sh/yxoza583","slide":6,"text":"Mutation survival","textPreview":"Mutation survival","textChars":17,"textLines":1,"bbox":[664,442,510,32]}
+{"kind":"textbox","id":"sh/zyxgjapo","slide":6,"text":"Does evidence kill changed-region mutants?","textPreview":"Does evidence kill changed-region mutants?","textChars":42,"textLines":1,"bbox":[664,489,508,36]}
+{"kind":"textbox","id":"sh/0z6hcfqt","slide":6,"text":"Next: CVE fast path · flaky-test repair · independent AI-PR audit · regression sentinel","textPreview":"Next: CVE fast path · flaky-test repair · independent AI-PR audit · regression sentinel","textChars":87,"textLines":1,"bbox":[54,590,1070,28]}
+{"kind":"textbox","id":"sh/l0zyl07e","slide":6,"text":"Reprove is not a universal build system. It says ENV_UNSUPPORTED instead of pretending.","textPreview":"Reprove is not a universal build system. It says ENV_UNSUPPORTED instead of pretending.","textChars":87,"textLines":1,"bbox":[54,636,1070,22]}
+{"kind":"notes","id":"nt/4s049u","slide":6,"text":""}

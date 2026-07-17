@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Reprove — Evidence control room</title>
+    <style>
+      :root { --ink:#e8edff; --muted:#96a2c9; --bg:#080b18; --panel:#10152a; --line:#28335d; --green:#5df1b1; --red:#ff6985; --blue:#8cb4ff; --amber:#ffd36c; }
+      * { box-sizing:border-box } body { margin:0; background:radial-gradient(circle at 20% 0,#202b5b 0,transparent 33%),var(--bg); color:var(--ink); font:15px/1.5 Inter,ui-sans-serif,system-ui,sans-serif; }
+      main { max-width:1160px; margin:auto; padding:42px 26px 70px } header { display:flex; justify-content:space-between; align-items:flex-start; gap:24px; border-bottom:1px solid var(--line); padding-bottom:28px } .brand { display:flex; gap:12px; align-items:center; font-weight:800; letter-spacing:-.05em; font-size:29px }.mark { display:grid; place-items:center; width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--green),var(--blue)); color:#071121; font-size:21px }.tag { color:var(--green); font:600 12px ui-monospace,monospace; border:1px solid #34765b; border-radius:99px; padding:6px 10px; white-space:nowrap }.lead { color:var(--muted); margin:10px 0 0; font-size:17px }.grid { display:grid; grid-template-columns:1.35fr .85fr; gap:18px; margin-top:24px }.panel { background:linear-gradient(145deg,#141b36,#0e1327); border:1px solid var(--line); border-radius:16px; padding:22px; box-shadow:0 20px 50px #0003 }.kicker { color:var(--muted); text-transform:uppercase; letter-spacing:.12em; font:600 11px ui-monospace,monospace }.claim { font-size:21px; margin:7px 0 22px; letter-spacing:-.02em }.gate { display:grid; grid-template-columns:28px 1fr auto; gap:12px; padding:13px 0; border-top:1px solid #263052; align-items:center }.dot { width:11px;height:11px;border-radius:50%; background:var(--green); box-shadow:0 0 16px var(--green) }.gate strong { font-size:14px }.gate small { color:var(--muted); display:block }.score { font:800 48px/1 ui-monospace,monospace; color:var(--green); margin:14px 0 4px }.meter { height:8px;border-radius:99px;background:#202a4b;overflow:hidden;margin:15px 0 22px }.meter span { display:block;width:100%;height:100%;background:linear-gradient(90deg,var(--blue),var(--green)) }.mini { display:grid;grid-template-columns:repeat(2,1fr);gap:10px }.stat { background:#0b1022;border:1px solid #25305a;border-radius:10px;padding:12px }.stat b { display:block;font-size:22px }.stat span { color:var(--muted); font-size:12px }.timeline { margin-top:18px }.event { position:relative; padding:0 0 18px 26px; border-left:1px solid #33416e; margin-left:7px }.event::before { content:"";position:absolute;left:-5px;top:4px;width:9px;height:9px;border-radius:50%;background:var(--blue) }.event time { color:var(--muted);font:11px ui-monospace,monospace }.event p { margin:4px 0 }.refusal { grid-column:1/-1; border-color:#874457;background:linear-gradient(130deg,#241525,#10152a) }.refusal .dot {background:var(--red);box-shadow:0 0 16px var(--red)} code { color:#b9cbff; font:12px ui-monospace,monospace } @media(max-width:760px){header,.grid{display:block}.tag{display:inline-block;margin-top:16px}.panel{margin-top:16px}}
+    </style>
+  </head>
+  <body>
+    <main>
+      <header><div><div class="brand"><span class="mark">✓</span> reprove</div><p class="lead">Evidence control room · <b>No fix without a failing test.</b></p></div><span class="tag">● SANDBOXED EXECUTION</span></header>
+      <section class="grid">
+        <article class="panel"><span class="kicker">Issue #42 · reproduced</span><p class="claim">“Exports at exactly 100 records are rejected.”</p>
+          <div class="gate"><i class="dot"></i><div><strong>Fail on main</strong><small>Native pytest evidence failed deterministically</small></div><code>5 / 5 RED</code></div>
+          <div class="gate"><i class="dot"></i><div><strong>Fix boundary</strong><small>Agent had no write access to test files</small></div><code>ENFORCED</code></div>
+          <div class="gate"><i class="dot"></i><div><strong>Pass after fix</strong><small>The same evidence now passes consistently</small></div><code>5 / 5 GREEN</code></div>
+          <div class="gate"><i class="dot"></i><div><strong>Mutation check</strong><small>Changed <code>&gt;=</code> back to <code>&gt;</code>; test caught it</small></div><code>1 / 1 KILLED</code></div>
+          <div class="gate"><i class="dot"></i><div><strong>Blast radius</strong><small>Nearest regression suite remains green</small></div><code>CLEAN</code></div>
+        </article>
+        <aside class="panel"><span class="kicker">Objective confidence</span><div class="score">100<span style="font-size:16px;color:var(--muted)">/100</span></div><div class="meter"><span></span></div><div class="mini"><div class="stat"><b>5/5</b><span>determinism</span></div><div class="stat"><b>1</b><span>facet pinned</span></div><div class="stat"><b>0</b><span>test edits</span></div><div class="stat"><b>0</b><span>new regressions</span></div></div><div class="timeline"><span class="kicker">Execution trace</span><div class="event"><time>00:02</time><p>Parsed issue & localized <code>limit.py</code></p></div><div class="event"><time>00:18</time><p>Committed native evidence test</p></div><div class="event"><time>00:30</time><p>Opened evidence-bundle draft</p></div></div></aside>
+        <article class="panel refusal"><div class="gate" style="border:0;padding:0"><i class="dot"></i><div><strong>Refusal captured</strong><small>A planted “fix” tried to delete an assertion in <code>tests/test_export_limit.py</code>. Reprove rejected it before apply. This is a code gate, not a prompt request.</small></div><code>REJECTED</code></div></article>
+      </section>
+    </main>
+  </body>
+</html>

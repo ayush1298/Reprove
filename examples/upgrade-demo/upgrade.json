@@ -1,0 +1,15 @@
+{
+  "dependency": "parserkit",
+  "old_version": "1.4.0",
+  "new_version": "2.0.0",
+  "changelog_notes": "parserkit 2 returns null for empty responses; the existing application depended on the v1 object default.",
+  "canary_tests": ["tests/test_old_behavior_canary.py"],
+  "canary_command": "python -m pytest tests/test_old_behavior_canary.py",
+  "bump": {
+    "description": "Apply parserkit v2 default behavior for the canary run.",
+    "files": {
+      "dependency.txt": "parserkit==2.0.0\n",
+      "compat.py": "def parse_empty_response() -> dict | None:\n    \"\"\"parserkit v2 returns null for an empty response.\"\"\"\n    return None\n"
+    }
+  }
+}

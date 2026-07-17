@@ -1,0 +1,6 @@
+{
+  "description": "Accept the documented inclusive export limit.",
+  "files": {
+    "limit.py": "def allows_export(record_count: int) -> bool:\n    \"\"\"An account may export at the inclusive documented limit.\"\"\"\n    return record_count >= 100\n"
+  }
+}
