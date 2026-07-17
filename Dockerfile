@@ -5,4 +5,5 @@ COPY pyproject.toml README.md ./
 COPY reprove ./reprove
 RUN pip install --no-cache-dir .
 
-ENTRYPOINT ["reprove"]
+EXPOSE 8000
+CMD ["reprove-api"]

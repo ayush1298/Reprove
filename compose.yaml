@@ -1,0 +1,48 @@
+services:
+  api:
+    build: .
+    environment:
+      REPROVE_DATABASE_URL: postgresql+psycopg://reprove:reprove@postgres:5432/reprove
+      REPROVE_ARTIFACT_ROOT: /var/lib/reprove/artifacts
+      REPROVE_CORS_ORIGINS: http://localhost:8000
+      REPROVE_REDIS_URL: redis://redis:6379/0
+    ports:
+      - "8000:8000"
+    volumes:
+      - reprove-artifacts:/var/lib/reprove
+    depends_on:
+      postgres:
+        condition: service_healthy
+  worker:
+    build: .
+    command: ["reprove-worker"]
+    environment:
+      REPROVE_DATABASE_URL: postgresql+psycopg://reprove:reprove@postgres:5432/reprove
+      REPROVE_ARTIFACT_ROOT: /var/lib/reprove/artifacts
+      REPROVE_REDIS_URL: redis://redis:6379/0
+    volumes:
+      - reprove-artifacts:/var/lib/reprove
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: reprove
+      POSTGRES_USER: reprove
+      POSTGRES_PASSWORD: reprove
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U reprove -d reprove"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - reprove-postgres:/var/lib/postgresql/data
+  redis:
+    image: redis:7-alpine
+
+volumes:
+  reprove-artifacts:
+  reprove-postgres:

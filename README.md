@@ -15,7 +15,9 @@ Open [`dashboard/index.html`](dashboard/index.html) for the polished evidence co
 - Neighboring-test blast-radius gate and objective, gate-derived confidence score.
 - Issue-prover artifacts: JSON evidence bundle, Markdown issue comment, and draft-PR body. GitHub REST adapter is branch-scoped to `reprove/*`.
 - Upgrade verifier with old-behavior canaries for silent breaking changes.
-- GitHub event scaffold, OpenAI structured-proposal adapter, Docker hardened execution command, seeded demos, evaluation harness, and hackathon dashboard.
+- FastAPI control plane with durable organizations, repositories, runs, live events, redacted 30-day artifacts, SHA-256 evidence manifests, and a responsive evidence cockpit.
+- GitHub webhook normalization/deduplication, branch-restricted evidence publication, Checks, issue comments, draft-PR publishing, AI-PR audit core, hosted/self-hosted runner contracts, and provider-neutral model adapters.
+- Docker hardened execution command, seeded demos, evaluation harness, CI, and hackathon dashboard.
 
 ## Run it
 
@@ -26,6 +28,29 @@ python -m pip install -e '.[dev]'
 python -m pytest -p no:rerunfailures
 python -m reprove.cli inspect .
 ```
+
+### Run the live evidence cockpit
+
+```bash
+reprove-api
+# visit http://127.0.0.1:8000
+```
+
+The cockpit persists organizations, repositories, runs, events, and redacted
+evidence artifacts in SQLite locally, while using the same SQL schema as the
+PostgreSQL deployment. See [operations](docs/OPERATIONS.md) for containers,
+GitHub webhooks, and retention guidance.
+
+### Control-plane API
+
+`/docs` exposes the live OpenAPI surface. The main operational endpoints are:
+
+- `POST /v1/runs/issue-prover` and `POST /v1/runs/upgrade-verifier`;
+- `GET /v1/runs/{id}` plus `GET /v1/runs/{id}/events` for SSE trace streaming;
+- `GET /v1/runs/{id}/bundle` for immutable, redacted evidence JSON;
+- `POST /v1/audits/pull-request` for independent AI-PR evidence checks;
+- `POST /v1/github/webhooks` for signed GitHub delivery intake;
+- `POST /v1/runners` and `/v1/runners/{id}/leases` for self-hosted execution.
 
 Run the full demonstrated flows in [docs/DEMO.md](docs/DEMO.md). To view the control room, open [dashboard/index.html](dashboard/index.html) in a browser.
 The six-slide hackathon pitch is available at [reprove-hackathon-deck.pptx](outputs/reprove-hackathon-deck.pptx).

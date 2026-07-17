@@ -28,6 +28,18 @@ class Gate(str, Enum):
     BLAST_RADIUS = "blast_radius"
 
 
+class RunStatus(str, Enum):
+    QUEUED = "queued"
+    RUNNING = "running"
+    BOOTSTRAPPING = "bootstrapping"
+    GENERATING_EVIDENCE = "generating_evidence"
+    VERIFYING = "verifying"
+    PUBLISHING = "publishing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
 @dataclass(slots=True)
 class CommandResult:
     command: list[str]
@@ -96,4 +108,3 @@ class ChangeSet:
 
     def paths(self) -> list[Path]:
         return [Path(path) for path in self.files]
-
