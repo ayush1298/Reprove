@@ -31,6 +31,7 @@ from .audit import audit_pull_request
 from .models import EvidenceBundle, Verdict
 from .benchmark import READ_ONLY_GUARANTEE, load_manifest
 from .github import fetch_public_issue
+from .integrations import as_dict, normalize_signal
 
 
 class OrganizationInput(BaseModel):
@@ -80,10 +81,35 @@ class RunnerRegistrationInput(BaseModel):
 
 
 class PullRequestAuditInput(BaseModel):
+    repository_id: str | None = None
+    pull_request_number: int | None = Field(default=None, ge=1)
+    head_sha: str | None = Field(default=None, max_length=100)
     evidence_run_id: str | None = None
     linked_issue: bool
     unified_diff: str = Field(max_length=500000)
     regression_clean: bool = True
+
+
+class IntegrationIntakeInput(BaseModel):
+    provider: Literal["sentry", "linear", "jira", "github"]
+    external_ref: str = Field(min_length=1, max_length=500)
+    title: str = Field(min_length=1, max_length=10000)
+    claim: str = Field(default="", max_length=20000)
+    repository_id: str | None = None
+    external_url: str | None = Field(default=None, max_length=2000)
+    fingerprint: str | None = Field(default=None, max_length=300)
+    severity: str | None = Field(default=None, max_length=40)
+    payload: dict = Field(default_factory=dict)
+
+
+class IntegrationEvidenceRunInput(IssueRunInput):
+    pass
+
+
+class MCPRequest(BaseModel):
+    jsonrpc: str = "2.0"
+    method: str
+    params: dict = Field(default_factory=dict)
 
 
 def run_payload(run: RunRecord) -> dict:
@@ -124,6 +150,35 @@ def create_app(database_url: str | None = None, artifact_root: str | Path | None
     def get_state() -> AppState:
         return app.state.reprove
 
+    def integration_payload(event) -> dict:
+        return {
+            "id": event.id, "provider": event.provider, "kind": event.kind, "external_ref": event.external_ref,
+            "title": event.title, "claim": event.claim, "repository_id": event.repository_id, "external_url": event.external_url,
+            "fingerprint": event.fingerprint, "severity": event.severity, "status": event.status, "run_id": event.run_id,
+            "result": event.result, "created_at": event.created_at.isoformat(), "updated_at": event.updated_at.isoformat(),
+        }
+
+    def audit_result_payload(payload: PullRequestAuditInput, service: AppState) -> dict:
+        evidence = None
+        if payload.evidence_run_id:
+            path = service.store.bundle_path(payload.evidence_run_id)
+            if not path or not path.exists():
+                raise HTTPException(status_code=404, detail="Evidence run has no persisted bundle.")
+            data = json.loads(path.read_text())
+            evidence = EvidenceBundle(data["repository"], data["claim"], Verdict(data["verdict"]), confidence=data.get("confidence", 0))
+        result = audit_pull_request(linked_issue=payload.linked_issue, evidence=evidence, unified_diff=payload.unified_diff, regression_clean=payload.regression_clean)
+        return {"decision": result.decision.value, "confidence": result.confidence, "findings": [{"code": item.code, "message": item.message, "severity": item.severity} for item in result.findings]}
+
+    def queue_issue_run(payload: IssueRunInput, service: AppState, *, start: bool = True):
+        with service.database.session() as session:
+            repository = session.get(RepositoryRecord, payload.repository_id)
+            if not repository:
+                raise HTTPException(status_code=404, detail="Repository not found.")
+        run = service.store.create_run(payload.repository_id, kind="issue_prover", claim=payload.claim, source={"issue_number": payload.issue_number}, request=payload.model_dump())
+        if start and repository.runner_mode == "hosted":
+            service.dispatcher.submit_issue(run.id, payload.repository_path, payload.claim, payload.evidence_tests, payload.test_command, payload.questions)
+        return run
+
     @app.get("/health")
     def health(service=Depends(get_state)):
         return {"status": "ok", "database": service.database.engine.url.get_backend_name(), "retention_days": 30}
@@ -148,13 +203,7 @@ def create_app(database_url: str | None = None, artifact_root: str | Path | None
 
     @app.post("/v1/runs/issue-prover", status_code=status.HTTP_202_ACCEPTED)
     def create_issue_run(payload: IssueRunInput, service=Depends(get_state), _=Depends(require_control_plane_access)):
-        with service.database.session() as session:
-            repository = session.get(RepositoryRecord, payload.repository_id)
-            if not repository:
-                raise HTTPException(status_code=404, detail="Repository not found.")
-        run = service.store.create_run(payload.repository_id, kind="issue_prover", claim=payload.claim, source={"issue_number": payload.issue_number}, request=payload.model_dump())
-        if repository.runner_mode == "hosted":
-            service.dispatcher.submit_issue(run.id, payload.repository_path, payload.claim, payload.evidence_tests, payload.test_command, payload.questions)
+        run = queue_issue_run(payload, service)
         return run_payload(run)
 
     @app.get("/v1/runs")
@@ -201,15 +250,102 @@ def create_app(database_url: str | None = None, artifact_root: str | Path | None
 
     @app.post("/v1/audits/pull-request")
     def audit_pr(payload: PullRequestAuditInput, service=Depends(get_state)):
-        evidence = None
-        if payload.evidence_run_id:
-            path = service.store.bundle_path(payload.evidence_run_id)
-            if not path or not path.exists():
-                raise HTTPException(status_code=404, detail="Evidence run has no persisted bundle.")
-            data = json.loads(path.read_text())
-            evidence = EvidenceBundle(data["repository"], data["claim"], Verdict(data["verdict"]), confidence=data.get("confidence", 0))
-        result = audit_pull_request(linked_issue=payload.linked_issue, evidence=evidence, unified_diff=payload.unified_diff, regression_clean=payload.regression_clean)
-        return {"decision": result.decision.value, "confidence": result.confidence, "findings": [{"code": item.code, "message": item.message, "severity": item.severity} for item in result.findings]}
+        return audit_result_payload(payload, service)
+
+    @app.post("/v1/integrations/github/pr-check", status_code=status.HTTP_201_CREATED)
+    def github_pr_check(payload: PullRequestAuditInput, service=Depends(get_state), _=Depends(require_control_plane_access)):
+        """Record a PR evidence check locally; no GitHub check, comment, or PR is created."""
+        if not payload.repository_id:
+            raise HTTPException(status_code=422, detail="repository_id is required to record a PR check.")
+        with service.database.session() as session:
+            if not session.get(RepositoryRecord, payload.repository_id):
+                raise HTTPException(status_code=404, detail="Repository not found.")
+        result = audit_result_payload(payload, service)
+        event = service.store.create_integration_event(provider="github", kind="pull_request_check", external_ref=f"PR-{payload.pull_request_number or 'local'}", title=f"PR evidence check #{payload.pull_request_number or 'local'}", claim="Independent evidence audit for a proposed change.", repository_id=payload.repository_id, fingerprint=payload.head_sha, payload={"linked_issue": payload.linked_issue, "evidence_run_id": payload.evidence_run_id}, result=result)
+        event = service.store.resolve_integration_event(event.id, status="verified" if result["decision"] == "VERIFIED" else "needs_review", result=result) or event
+        return integration_payload(event)
+
+    @app.post("/v1/integrations/intake", status_code=status.HTTP_201_CREATED)
+    def create_integration_intake(payload: IntegrationIntakeInput, service=Depends(get_state), _=Depends(require_control_plane_access)):
+        if payload.repository_id:
+            with service.database.session() as session:
+                if not session.get(RepositoryRecord, payload.repository_id):
+                    raise HTTPException(status_code=404, detail="Repository not found.")
+        event = service.store.create_integration_event(provider=payload.provider, kind="incident_intake", external_ref=payload.external_ref, title=payload.title, claim=payload.claim or payload.title, repository_id=payload.repository_id, external_url=payload.external_url, fingerprint=payload.fingerprint, severity=payload.severity, payload=payload.payload)
+        return integration_payload(event)
+
+    @app.post("/v1/integrations/{event_id}/evidence-run", status_code=status.HTTP_202_ACCEPTED)
+    def integration_evidence_run(event_id: str, payload: IntegrationEvidenceRunInput, service=Depends(get_state), _=Depends(require_control_plane_access)):
+        event = next((item for item in service.store.list_integration_events(limit=1000) if item.id == event_id), None)
+        if not event:
+            raise HTTPException(status_code=404, detail="Integration intake not found.")
+        if event.repository_id and event.repository_id != payload.repository_id:
+            raise HTTPException(status_code=422, detail="Evidence run repository must match the integration intake.")
+        run = queue_issue_run(payload, service, start=False)
+        service.store.attach_event_run(event_id, run.id)
+        with service.database.session() as session:
+            repository = session.get(RepositoryRecord, payload.repository_id)
+        if repository and repository.runner_mode == "hosted":
+            service.dispatcher.submit_issue(run.id, payload.repository_path, payload.claim, payload.evidence_tests, payload.test_command, payload.questions)
+        return run_payload(run) | {"integration_event_id": event_id}
+
+    @app.get("/v1/integrations")
+    def list_integrations(repository_id: str | None = None, service=Depends(get_state)):
+        return [integration_payload(event) for event in service.store.list_integration_events(repository_id, 100)]
+
+    @app.post("/v1/integrations/webhooks/{provider}", status_code=status.HTTP_202_ACCEPTED)
+    async def integration_webhook(provider: Literal["sentry", "linear", "jira", "github"], request: Request, service=Depends(get_state)):
+        """Optional inbound webhook. Disabled unless the shared secret is explicitly configured."""
+        secret = os.environ.get("REPROVE_INTEGRATION_WEBHOOK_SECRET")
+        if not secret:
+            raise HTTPException(status_code=503, detail="Inbound integration webhooks are disabled until REPROVE_INTEGRATION_WEBHOOK_SECRET is configured.")
+        body = await request.body()
+        expected = "sha256=" + hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(expected, request.headers.get("x-reprove-signature", "")):
+            raise HTTPException(status_code=401, detail="Invalid integration webhook signature.")
+        signal = normalize_signal(provider, json.loads(body or b"{}"))
+        event = service.store.create_integration_event(**as_dict(signal), kind="incident_intake", payload=json.loads(body or b"{}"))
+        return {"accepted": True, "event": integration_payload(event), "outbound_writes": False}
+
+    @app.get("/v1/ledger")
+    def evidence_ledger(repository_id: str | None = None, service=Depends(get_state)):
+        runs = service.store.list_runs(repository_id, 100)
+        events = service.store.list_integration_events(repository_id, 100)
+        return {
+            "summary": {"runs": len(runs), "bundles": sum(bool(service.store.bundle_path(run.id)) for run in runs), "open_intakes": sum(event.status in {"intake", "running", "needs_review"} for event in events), "resolved_intakes": sum(event.status in {"resolved", "verified"} for event in events)},
+            "runs": [run_payload(run) | {"bundle_available": bool(service.store.bundle_path(run.id))} for run in runs],
+            "integrations": [integration_payload(event) for event in events],
+        }
+
+    @app.post("/mcp")
+    def mcp(request: MCPRequest, service=Depends(get_state)):
+        """Small Streamable-HTTP MCP surface for coding agents; all writes stay local to Reprove."""
+        if request.jsonrpc != "2.0":
+            raise HTTPException(status_code=400, detail="MCP requests must use JSON-RPC 2.0.")
+        if request.method == "initialize":
+            return {"jsonrpc": "2.0", "result": {"protocolVersion": "2025-03-26", "serverInfo": {"name": "reprove", "version": "0.2.0"}, "capabilities": {"tools": {}}}}
+        if request.method == "tools/list":
+            tools = [
+                {"name": "reprove_audit_pr", "description": "Audit a pull-request diff against a Reprove evidence run. Never posts to GitHub.", "inputSchema": {"type": "object", "required": ["linked_issue", "unified_diff"], "properties": {"linked_issue": {"type": "boolean"}, "unified_diff": {"type": "string"}, "evidence_run_id": {"type": "string"}, "regression_clean": {"type": "boolean"}}}},
+                {"name": "reprove_replay_bundle", "description": "Read an immutable local evidence bundle by run id.", "inputSchema": {"type": "object", "required": ["run_id"], "properties": {"run_id": {"type": "string"}}}},
+                {"name": "reprove_ledger", "description": "List recent proof runs and external intake outcomes.", "inputSchema": {"type": "object", "properties": {"repository_id": {"type": "string"}}}},
+            ]
+            return {"jsonrpc": "2.0", "result": {"tools": tools}}
+        if request.method == "tools/call":
+            name, arguments = request.params.get("name"), request.params.get("arguments", {})
+            if name == "reprove_audit_pr":
+                result = audit_result_payload(PullRequestAuditInput(**arguments), service)
+            elif name == "reprove_replay_bundle":
+                path = service.store.bundle_path(arguments.get("run_id", ""))
+                if not path or not path.exists():
+                    raise HTTPException(status_code=404, detail="Evidence bundle is not available yet.")
+                result = json.loads(path.read_text())
+            elif name == "reprove_ledger":
+                result = evidence_ledger(arguments.get("repository_id"), service)
+            else:
+                raise HTTPException(status_code=404, detail="Unknown MCP tool.")
+            return {"jsonrpc": "2.0", "result": {"content": [{"type": "text", "text": json.dumps(result, default=str)}]}}
+        raise HTTPException(status_code=404, detail="Unsupported MCP method.")
 
     @app.get("/v1/repositories/{repository_id}/health")
     def repository_health(repository_id: str, service=Depends(get_state)):

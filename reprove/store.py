@@ -10,7 +10,7 @@ from typing import Any
 
 from sqlalchemy import func, select
 
-from .database import ArtifactRecord, Database, OrganizationRecord, RepositoryRecord, RunEventRecord, RunRecord, RunnerRecord, WebhookDeliveryRecord, utcnow
+from .database import ArtifactRecord, Database, IntegrationEventRecord, OrganizationRecord, RepositoryRecord, RunEventRecord, RunRecord, RunnerRecord, WebhookDeliveryRecord, utcnow
 from .models import EvidenceBundle
 from .redaction import redact_value
 
@@ -79,6 +79,9 @@ class RunStore:
             run.summary = summary
             run.finished_at = utcnow()
             self._event(session, run, "run.completed", "Evidence bundle finalized.", {"verdict": run.verdict, "confidence": run.confidence})
+            for integration_event in session.scalars(select(IntegrationEventRecord).where(IntegrationEventRecord.run_id == run_id)):
+                integration_event.status = "resolved"
+                integration_event.result = {"verdict": run.verdict, "confidence": run.confidence, "summary": summary}
             session.commit()
         target = self.artifact_root / run_id
         target.mkdir(parents=True, exist_ok=True)
@@ -105,6 +108,9 @@ class RunStore:
                 return
             run.status = "failed"; run.summary = message; run.finished_at = utcnow()
             self._event(session, run, "run.failed", message, {"detail": detail[-4000:]})
+            for integration_event in session.scalars(select(IntegrationEventRecord).where(IntegrationEventRecord.run_id == run_id)):
+                integration_event.status = "failed"
+                integration_event.result = {"summary": message}
             session.commit()
 
     def cancel(self, run_id: str) -> bool:
@@ -144,6 +150,38 @@ class RunStore:
             session.add(WebhookDeliveryRecord(delivery_id=delivery_id, event=event, payload=payload))
             session.commit()
             return True
+
+    def create_integration_event(self, *, provider: str, kind: str, external_ref: str, title: str, claim: str = "", repository_id: str | None = None, external_url: str | None = None, fingerprint: str | None = None, severity: str | None = None, payload: dict | None = None, result: dict | None = None) -> IntegrationEventRecord:
+        """Persist a received integration signal. This method never talks to the provider."""
+        with self.database.session() as session:
+            event = IntegrationEventRecord(repository_id=repository_id, provider=provider, kind=kind, external_ref=external_ref, title=title, claim=claim, external_url=external_url, fingerprint=fingerprint, severity=severity, payload=redact_value(payload or {}), result=result or {})
+            session.add(event); session.commit(); session.refresh(event)
+            return event
+
+    def list_integration_events(self, repository_id: str | None = None, limit: int = 100) -> list[IntegrationEventRecord]:
+        with self.database.session() as session:
+            stmt = select(IntegrationEventRecord).order_by(IntegrationEventRecord.created_at.desc()).limit(limit)
+            if repository_id:
+                stmt = stmt.where(IntegrationEventRecord.repository_id == repository_id)
+            return list(session.scalars(stmt))
+
+    def attach_event_run(self, event_id: str, run_id: str) -> IntegrationEventRecord | None:
+        with self.database.session() as session:
+            event = session.get(IntegrationEventRecord, event_id)
+            if not event:
+                return None
+            event.run_id, event.status = run_id, "running"
+            session.commit(); session.refresh(event)
+            return event
+
+    def resolve_integration_event(self, event_id: str, *, status: str, result: dict) -> IntegrationEventRecord | None:
+        with self.database.session() as session:
+            event = session.get(IntegrationEventRecord, event_id)
+            if not event:
+                return None
+            event.status, event.result = status, redact_value(result)
+            session.commit(); session.refresh(event)
+            return event
 
     def purge_expired_artifacts(self) -> int:
         """Retention worker entry point. Deletes local objects only after their expiry timestamp."""

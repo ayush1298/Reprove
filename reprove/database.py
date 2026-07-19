@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text, create_engine
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text, create_engine, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, relationship, sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -109,6 +109,27 @@ class WebhookDeliveryRecord(Base):
     received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
+class IntegrationEventRecord(Base):
+    """External claim/check provenance; records intake without publishing back upstream."""
+    __tablename__ = "integration_events"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    repository_id: Mapped[str | None] = mapped_column(ForeignKey("repositories.id"), nullable=True, index=True)
+    provider: Mapped[str] = mapped_column(String(40), index=True)
+    kind: Mapped[str] = mapped_column(String(60), index=True)
+    external_ref: Mapped[str] = mapped_column(String(500), index=True)
+    title: Mapped[str] = mapped_column(Text)
+    claim: Mapped[str] = mapped_column(Text, default="")
+    external_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    fingerprint: Mapped[str | None] = mapped_column(String(300), nullable=True, index=True)
+    severity: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    status: Mapped[str] = mapped_column(String(40), default="intake", index=True)
+    run_id: Mapped[str | None] = mapped_column(ForeignKey("runs.id"), nullable=True, index=True)
+    result: Mapped[dict] = mapped_column(JSON, default=dict)
+    payload: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+
 class RunnerRecord(Base):
     __tablename__ = "runners"
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
@@ -133,6 +154,13 @@ class Database:
 
     def create_all(self) -> None:
         Base.metadata.create_all(self.engine)
+        # Local installs predate formal migrations. Keep SQLite upgrades additive so
+        # existing evidence remains readable when a new ledger column is introduced.
+        if self.engine.url.get_backend_name() == "sqlite":
+            with self.engine.begin() as connection:
+                artifact_columns = {row[1] for row in connection.execute(text("PRAGMA table_info(artifacts)"))}
+                if "expires_at" not in artifact_columns:
+                    connection.execute(text("ALTER TABLE artifacts ADD COLUMN expires_at DATETIME"))
 
     def session(self) -> Session:
         return self.sessions()
