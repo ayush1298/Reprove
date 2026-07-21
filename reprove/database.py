@@ -55,6 +55,7 @@ class RunRecord(Base):
     summary: Mapped[str] = mapped_column(Text, default="")
     confidence: Mapped[int] = mapped_column(Integer, default=0)
     cancel_requested: Mapped[bool] = mapped_column(Boolean, default=False)
+    leased_runner_id: Mapped[str | None] = mapped_column(ForeignKey("runners.id"), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -161,6 +162,9 @@ class Database:
                 artifact_columns = {row[1] for row in connection.execute(text("PRAGMA table_info(artifacts)"))}
                 if "expires_at" not in artifact_columns:
                     connection.execute(text("ALTER TABLE artifacts ADD COLUMN expires_at DATETIME"))
+                run_columns = {row[1] for row in connection.execute(text("PRAGMA table_info(runs)"))}
+                if "leased_runner_id" not in run_columns:
+                    connection.execute(text("ALTER TABLE runs ADD COLUMN leased_runner_id VARCHAR(36)"))
 
     def session(self) -> Session:
         return self.sessions()

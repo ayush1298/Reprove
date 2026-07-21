@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "dataset": "SWE-bench Lite / Verified intake",
+  "purpose": "Public evaluation intake only. These records are not cloned, executed, or scored by this manifest.",
+  "selection_rules": [
+    "Use an upstream SWE-bench task id and the evaluator's pinned base image.",
+    "Keep generated tests and source worktrees immutable during a run.",
+    "Exclude instances identified by SWE-bench maintainers as historically failing their gold patch.",
+    "Do not publish a resolution rate until raw evaluator output is checked in."
+  ],
+  "candidates": [
+    {"instance_id": "sympy__sympy-20590", "track": "repair", "state": "shortlisted", "reason": "Referenced by the official SWE-bench evaluator quick-start; first full containerized task.", "source": "https://github.com/SWE-bench/SWE-bench"},
+    {"instance_id": "sphinx-doc__sphinx-7454", "track": "repair", "state": "shortlisted", "reason": "Small documentation-toolchain repair candidate; run only after image and test immutability review.", "source": "https://github.com/SWE-bench/SWE-bench"},
+    {"instance_id": "django__django-16877", "track": "integrity-control", "state": "shortlisted", "reason": "Use as an adversarial test-integrity check, not as a resolution claim.", "source": "https://github.com/SWE-bench/SWE-bench/issues/538"}
+  ],
+  "quarantined": [
+    {"instance_id": "astropy__astropy-7606", "reason": "Known historical gold-patch evaluation failure."},
+    {"instance_id": "astropy__astropy-8707", "reason": "Known historical gold-patch evaluation failure."},
+    {"instance_id": "astropy__astropy-8872", "reason": "Known historical gold-patch evaluation failure."},
+    {"instance_id": "matplotlib__matplotlib-20488", "reason": "Known historical gold-patch evaluation failure."},
+    {"instance_id": "django__django-10097", "reason": "Known historical gold-patch evaluation failure."}
+  ],
+  "exclusion_source": "https://github.com/SWE-bench/SWE-bench/issues/267"
+}

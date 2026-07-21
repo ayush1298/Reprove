@@ -8,6 +8,12 @@ Benchmark tooling has no GitHub client or publishing path. It does not clone can
 
 The initial public candidates are in [`benchmarks/candidates.jsonl`](../benchmarks/candidates.jsonl); they are research metadata, not results or permission to modify another project.
 
+## Published SWE-bench readiness report
+
+[`reports/swe-bench-pilot.json`](../reports/swe-bench-pilot.json) is the project’s first public evaluation artifact. It intentionally reports **NOT_RUN** and a null resolution rate: this is an honest, reproducible intake report—not a leaderboard claim. It records three initial SWE-bench tasks, one test-integrity control, and five task ids quarantined because SWE-bench maintainers documented prior gold-patch failures.
+
+The first scored run uses the official evaluator with `sympy__sympy-20590`, pinned image digests, immutable source/test digests, network disabled after image provisioning, and checked-in predictions/evaluator JSON. The official [SWE-bench repository](https://github.com/SWE-bench/SWE-bench) documents the evaluator and task format; its [known-invalid-instance notice](https://github.com/SWE-bench/SWE-bench/issues/267) informs the quarantine list. The [test-manipulation report](https://github.com/SWE-bench/SWE-bench/issues/538) is why Reprove includes an explicit integrity-control task.
+
 ## Reproducible scoring
 
 Promote a reviewed candidate to `ready` only after adding the pre-fix commit, accepted-fix commit, compatible license, two local worktree paths, and a narrow deterministic command. Then run:

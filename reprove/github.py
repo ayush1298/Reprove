@@ -2,12 +2,79 @@
 
 from __future__ import annotations
 
-import json
 import base64
+import json
+import os
+import time
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
+
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding
+
+
+def _base64url(value: bytes) -> str:
+    return base64.urlsafe_b64encode(value).rstrip(b"=").decode()
+
+
+@dataclass(frozen=True, slots=True)
+class InstallationToken:
+    """A short-lived GitHub installation token. It is never persisted by Reprove."""
+
+    token: str
+    expires_at: str
+    permissions: dict
+
+
+class GitHubAppAuth:
+    """Create GitHub App JWTs and exchange them for scoped installation tokens.
+
+    The private key remains process-local. The only credential handed to a runner
+    is an installation token with GitHub's one-hour lifetime; neither key nor
+    token is stored in the evidence ledger.
+    """
+
+    def __init__(self, app_id: str, private_key_pem: str, api_url: str = "https://api.github.com"):
+        if not app_id or not private_key_pem:
+            raise ValueError("GitHub App id and private key are required.")
+        self.app_id = str(app_id)
+        self.private_key_pem = private_key_pem.replace("\\n", "\n")
+        self.api_url = api_url.rstrip("/")
+        self._tokens: dict[str, InstallationToken] = {}
+
+    @classmethod
+    def from_environment(cls) -> "GitHubAppAuth | None":
+        app_id = os.environ.get("REPROVE_GITHUB_APP_ID")
+        private_key = os.environ.get("REPROVE_GITHUB_APP_PRIVATE_KEY")
+        return cls(app_id, private_key, os.environ.get("REPROVE_GITHUB_API_URL", "https://api.github.com")) if app_id and private_key else None
+
+    def app_jwt(self, now: int | None = None) -> str:
+        issued_at = int(now if now is not None else time.time()) - 60
+        header = _base64url(json.dumps({"alg": "RS256", "typ": "JWT"}, separators=(",", ":")).encode())
+        claims = _base64url(json.dumps({"iat": issued_at, "exp": issued_at + 9 * 60, "iss": self.app_id}, separators=(",", ":")).encode())
+        signing_input = f"{header}.{claims}".encode()
+        key = serialization.load_pem_private_key(self.private_key_pem.encode(), password=None)
+        signature = key.sign(signing_input, padding.PKCS1v15(), hashes.SHA256())
+        return f"{header}.{claims}.{_base64url(signature)}"
+
+    def installation_token(self, installation_id: str, *, now: datetime | None = None) -> InstallationToken:
+        cached = self._tokens.get(str(installation_id))
+        current = now or datetime.now(UTC)
+        if cached and datetime.fromisoformat(cached.expires_at.replace("Z", "+00:00")) > current.replace(microsecond=0):
+            return cached
+        request = Request(
+            f"{self.api_url}/app/installations/{installation_id}/access_tokens",
+            data=b"{}", method="POST",
+            headers={"Accept": "application/vnd.github+json", "Authorization": f"Bearer {self.app_jwt()}", "X-GitHub-Api-Version": "2022-11-28", "Content-Type": "application/json", "User-Agent": "reprove-github-app"},
+        )
+        with urlopen(request, timeout=20) as response:  # nosec B310: configured GitHub API origin
+            payload = json.loads(response.read())
+        token = InstallationToken(payload["token"], payload["expires_at"], payload.get("permissions", {}))
+        self._tokens[str(installation_id)] = token
+        return token
 
 
 @dataclass(slots=True)
@@ -15,6 +82,11 @@ class GitHubClient:
     repository: str
     token: str
     api_url: str = "https://api.github.com"
+
+    @classmethod
+    def for_installation(cls, repository: str, installation_id: str, auth: GitHubAppAuth) -> "GitHubClient":
+        """Build a repository client from an ephemeral installation token."""
+        return cls(repository=repository, token=auth.installation_token(installation_id).token, api_url=auth.api_url)
 
     def _request(self, method: str, endpoint: str, body: dict | None = None) -> dict:
         payload = json.dumps(body).encode() if body is not None else None

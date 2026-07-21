@@ -10,7 +10,7 @@ from typing import Any
 
 from sqlalchemy import func, select
 
-from .database import ArtifactRecord, Database, IntegrationEventRecord, OrganizationRecord, RepositoryRecord, RunEventRecord, RunRecord, RunnerRecord, WebhookDeliveryRecord, utcnow
+from .database import ArtifactRecord, Database, GitHubInstallationRecord, IntegrationEventRecord, OrganizationRecord, RepositoryRecord, RunEventRecord, RunRecord, RunnerRecord, WebhookDeliveryRecord, utcnow
 from .models import EvidenceBundle
 from .redaction import redact_value
 
@@ -195,9 +195,9 @@ class RunStore:
             session.commit()
             return len(expired)
 
-    def register_runner(self, organization_id: str, name: str, capabilities: dict, lease_token_hash: str) -> RunnerRecord:
+    def register_runner(self, organization_id: str, name: str, mode: str, capabilities: dict, lease_token_hash: str) -> RunnerRecord:
         with self.database.session() as session:
-            item = RunnerRecord(organization_id=organization_id, name=name, capabilities=capabilities, lease_token_hash=lease_token_hash)
+            item = RunnerRecord(organization_id=organization_id, name=name, mode=mode, capabilities=redact_value(capabilities), lease_token_hash=lease_token_hash)
             session.add(item); session.commit(); session.refresh(item)
             return item
 
@@ -209,21 +209,67 @@ class RunStore:
             item.last_seen_at = utcnow(); session.commit(); session.refresh(item)
             return item
 
+    @staticmethod
+    def _capabilities_match(requirements: dict, capabilities: dict) -> bool:
+        """Use a deliberately small, auditable matching rule for isolated runners."""
+        for key, required in requirements.items():
+            actual = capabilities.get(key)
+            if isinstance(required, list):
+                if not isinstance(actual, list) or not set(required).issubset(set(actual)):
+                    return False
+            elif actual != required:
+                return False
+        return True
+
     def lease_next_run(self, runner_id: str, lease_token_hash: str) -> RunRecord | None:
-        """Atomically claim the oldest compatible queued job for a self-hosted runner."""
+        """Atomically claim the oldest organization job compatible with this runner."""
         with self.database.session() as session:
             runner = session.get(RunnerRecord, runner_id)
             if not runner or runner.lease_token_hash != lease_token_hash:
                 return None
-            run = session.scalar(
+            queued = list(session.scalars(
                 select(RunRecord)
                 .join(RepositoryRecord, RepositoryRecord.id == RunRecord.repository_id)
-                .where(RepositoryRecord.organization_id == runner.organization_id, RunRecord.status == "queued")
+                .where(RepositoryRecord.organization_id == runner.organization_id, RepositoryRecord.runner_mode == runner.mode, RunRecord.status == "queued")
                 .order_by(RunRecord.created_at)
-            )
+            ))
+            run = next((item for item in queued if self._capabilities_match(item.request.get("runner_requirements", {}), runner.capabilities)), None)
             if not run:
                 return None
-            run.status = "running"; run.started_at = utcnow()
-            self._event(session, run, "run.leased", "Self-hosted runner leased run.", {"runner_id": runner_id})
+            run.status = "running"; run.started_at = utcnow(); run.leased_runner_id = runner_id
+            self._event(session, run, "run.leased", "Isolated runner leased run.", {"runner_id": runner_id, "mode": runner.mode, "requirements": run.request.get("runner_requirements", {})})
             session.commit(); session.refresh(run)
             return run
+
+    def complete_leased_run(self, runner_id: str, lease_token_hash: str, run_id: str, bundle: EvidenceBundle, summary: str) -> bool:
+        """Accept completion only from the runner which holds the active lease."""
+        with self.database.session() as session:
+            runner, run = session.get(RunnerRecord, runner_id), session.get(RunRecord, run_id)
+            if not runner or not run or runner.lease_token_hash != lease_token_hash or run.leased_runner_id != runner_id or run.status != "running" or run.cancel_requested or bundle.claim != run.claim:
+                return False
+            self._event(session, run, "run.runner_completion_received", "Runner submitted an evidence bundle.", {"runner_id": runner_id})
+            session.commit()
+        self.complete(run_id, bundle, summary)
+        return True
+
+    def list_runners(self, organization_id: str | None = None, limit: int = 100) -> list[RunnerRecord]:
+        with self.database.session() as session:
+            statement = select(RunnerRecord).order_by(RunnerRecord.last_seen_at.desc()).limit(limit)
+            if organization_id:
+                statement = statement.where(RunnerRecord.organization_id == organization_id)
+            return list(session.scalars(statement))
+
+    def upsert_github_installation(self, organization_id: str, github_installation_id: str, login: str, permissions: dict) -> GitHubInstallationRecord:
+        with self.database.session() as session:
+            item = session.scalar(select(GitHubInstallationRecord).where(GitHubInstallationRecord.github_installation_id == str(github_installation_id)))
+            if not item:
+                item = GitHubInstallationRecord(organization_id=organization_id, github_installation_id=str(github_installation_id), github_account_login=login, permissions=permissions)
+                session.add(item)
+            else:
+                item.organization_id, item.github_account_login, item.permissions = organization_id, login, permissions
+            session.commit(); session.refresh(item)
+            return item
+
+    def github_installation(self, github_installation_id: str) -> GitHubInstallationRecord | None:
+        with self.database.session() as session:
+            return session.scalar(select(GitHubInstallationRecord).where(GitHubInstallationRecord.github_installation_id == str(github_installation_id)))

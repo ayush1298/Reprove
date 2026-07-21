@@ -16,7 +16,7 @@ Open [`dashboard/index.html`](dashboard/index.html) for the polished evidence co
 - Issue-prover artifacts: JSON evidence bundle, Markdown issue comment, and draft-PR body. GitHub REST adapter is branch-scoped to `reprove/*`.
 - Upgrade verifier with old-behavior canaries for silent breaking changes.
 - FastAPI control plane with durable organizations, repositories, runs, live events, redacted 30-day artifacts, SHA-256 evidence manifests, and a responsive evidence cockpit.
-- GitHub webhook normalization/deduplication, branch-restricted evidence publication, Checks, issue comments, draft-PR publishing, AI-PR audit core, hosted/self-hosted runner contracts, and provider-neutral model adapters.
+- GitHub App JWT-to-installation-token authentication, webhook normalization/deduplication with review-only issue routing, AI-PR audit core, and hosted/self-hosted/managed isolated-runner contracts.
 - Docker hardened execution command, seeded demos, evaluation harness, CI, and hackathon dashboard.
 
 ## Run it
@@ -49,8 +49,9 @@ GitHub webhooks, and retention guidance.
 - `GET /v1/runs/{id}` plus `GET /v1/runs/{id}/events` for SSE trace streaming;
 - `GET /v1/runs/{id}/bundle` for immutable, redacted evidence JSON;
 - `POST /v1/audits/pull-request` for independent AI-PR evidence checks;
-- `POST /v1/github/webhooks` for signed GitHub delivery intake;
-- `POST /v1/runners` and `/v1/runners/{id}/leases` for self-hosted execution.
+- `POST /v1/github/webhooks` for signed GitHub delivery intake, plus `GET /v1/github/app/status` for safe configuration visibility;
+- `POST /v1/runners`, `/v1/runners/{id}/leases`, and `/v1/runners/{id}/runs/{run_id}/complete` for capability-matched managed execution;
+- `GET /v1/evaluations/swe-bench` for the published, intentionally unscored SWE-bench readiness report.
 
 Run the full demonstrated flows in [docs/DEMO.md](docs/DEMO.md). To view the control room, open [dashboard/index.html](dashboard/index.html) in a browser.
 The six-slide hackathon pitch is available at [reprove-hackathon-deck.pptx](outputs/reprove-hackathon-deck.pptx).

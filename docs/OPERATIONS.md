@@ -29,18 +29,37 @@ it unset. GitHub webhooks are separately authenticated with their HMAC secret.
 
 ## GitHub App wiring
 
-Configure the webhook target as `/v1/github/webhooks`, set
-`REPROVE_GITHUB_WEBHOOK_SECRET`, and request only repository metadata, contents,
-issues, checks, and pull-request permissions. GitHub delivery IDs are persisted
-and deduplicated before any trigger routing. The current endpoint recognizes:
+Configure `REPROVE_GITHUB_APP_ID`, `REPROVE_GITHUB_APP_PRIVATE_KEY`, and the
+webhook target `/v1/github/webhooks` with `REPROVE_GITHUB_WEBHOOK_SECRET`.
+Reprove signs a short-lived App JWT and exchanges it for a GitHub installation
+token only when it needs repository access; neither the private key nor tokens
+are persisted in the database or evidence bundle. Request only repository
+metadata, contents, issues, checks, and pull-request permissions. GitHub
+delivery IDs are persisted and deduplicated before any trigger routing. The
+current endpoint recognizes:
 
 - applying the `reprove` label to an issue;
 - commenting `@reprove reproduce this` on an issue;
 - bot-authored pull-request events for the future AI-PR audit queue.
 
+An actionable event for a connected repository creates an `awaiting_review`
+intake only. A maintainer still must select a pinned checkout and narrow command;
+no webhook can launch a test run or publish a GitHub change by itself.
+
+## Managed isolated runners
+
+Register a managed runner with explicit capabilities, for example
+`{"network_isolated": true, "read_only_source": true}`. A repository in
+`managed` mode only leases jobs to an enrolled managed runner whose capabilities
+match the job requirements. The lease records the runner id, and completion is
+accepted only from that same token holder via
+`POST /v1/runners/{runner_id}/runs/{run_id}/complete`.
+
 Do not mount GitHub or provider credentials in a repository execution sandbox.
-The worker must obtain a fresh short-lived token, clone the requested commit, and
-then seal network access for build/test execution.
+The runner obtains any short-lived checkout credential before the container is
+sealed, then runs build/test with no network, a read-only source mount, dropped
+Linux capabilities, no-new-privileges, and CPU/memory caps. The runner returns
+only a redacted evidence bundle to the control plane.
 
 ## Retention and incident response
 

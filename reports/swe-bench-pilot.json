@@ -1,0 +1,18 @@
+{
+  "report_version": "0.1.0",
+  "report_type": "SWE-bench evaluation readiness report",
+  "generated_at": "2026-07-21T00:00:00Z",
+  "score_status": "NOT_RUN",
+  "headline": "No SWE-bench resolution score is claimed until the official evaluator output is published.",
+  "protocol": {
+    "evaluator": "SWE-bench official Docker evaluator",
+    "task_manifest": "benchmarks/swebench-shortlist.json",
+    "source_immutability": "Pinned source worktrees are copied before execution and their digests are checked after execution.",
+    "test_immutability": "Tests from the benchmark image are mounted read-only; a changed test digest invalidates the task.",
+    "network": "Disabled for evidence execution after image provisioning.",
+    "publication": "Raw predictions, evaluator JSON, image digests, hardware, wall time, and costs are required before a score is shown."
+  },
+  "intake": {"shortlisted": 3, "repair_tasks": 2, "integrity_controls": 1, "quarantined": 5, "executed": 0, "valid": 0, "resolved": 0, "resolution_rate": null},
+  "next_reproducible_command": "python -m swebench.harness.run_evaluation --dataset_name princeton-nlp/SWE-bench_Lite --predictions_path <predictions.jsonl> --run_id reprove-pilot --instance_ids sympy__sympy-20590",
+  "sources": ["https://github.com/SWE-bench/SWE-bench", "https://github.com/SWE-bench/SWE-bench/issues/267", "https://github.com/SWE-bench/SWE-bench/issues/538"]
+}

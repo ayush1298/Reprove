@@ -56,6 +56,18 @@ def test_benchmark_catalog_is_explicitly_read_only(tmp_path):
     assert all(task["status"] == "candidate" for task in payload["tasks"])
 
 
+def test_swe_bench_readiness_report_never_claims_an_unrun_score(tmp_path):
+    app = create_app("sqlite://", tmp_path / "artifacts")
+    with TestClient(app) as client:
+        response = client.get("/v1/evaluations/swe-bench")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["read_only"] is True
+    assert payload["report"]["score_status"] == "NOT_RUN"
+    assert payload["report"]["intake"]["resolution_rate"] is None
+    assert payload["shortlist"]["quarantined"]
+
+
 def test_public_issue_preview_is_get_only_intake(tmp_path, monkeypatch):
     monkeypatch.setattr("reprove.api.fetch_public_issue", lambda _: PublicIssue(
         repository="pytest-dev/pytest", number=11706, title="Fixture teardown", body="Minimal example", html_url="https://github.com/pytest-dev/pytest/issues/11706",

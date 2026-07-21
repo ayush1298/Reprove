@@ -9,6 +9,7 @@ import json
 import os
 import time
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal
 
@@ -23,14 +24,13 @@ from .github_events import normalize_trigger
 from .orchestrator import LocalJobDispatcher
 from .jobs import RedisJobDispatcher
 from .store import RunStore
-from .models import ChangeSet
+from .models import ChangeSet, CommandResult, EvidenceBundle, Gate, GateResult, Verdict
 from .workflows import UpgradeProposal
 from .runners import new_lease, token_hash
 from .security import require_control_plane_access
 from .audit import audit_pull_request
-from .models import EvidenceBundle, Verdict
 from .benchmark import READ_ONLY_GUARANTEE, load_manifest
-from .github import fetch_public_issue
+from .github import GitHubAppAuth, fetch_public_issue
 from .integrations import as_dict, normalize_signal
 
 
@@ -43,7 +43,7 @@ class RepositoryInput(BaseModel):
     organization_slug: str
     full_name: str = Field(pattern=r"^[^/\s]+/[^/\s]+$")
     default_branch: str = "main"
-    runner_mode: Literal["hosted", "self-hosted"] = "hosted"
+    runner_mode: Literal["hosted", "self-hosted", "managed"] = "hosted"
     policy: dict = Field(default_factory=dict)
 
 
@@ -55,6 +55,7 @@ class IssueRunInput(BaseModel):
     test_command: list[str] = Field(default_factory=list, max_length=30)
     questions: list[str] = Field(default_factory=list, max_length=5)
     issue_number: int | None = Field(default=None, ge=1)
+    runner_requirements: dict = Field(default_factory=dict)
 
 
 class IssuePreviewInput(BaseModel):
@@ -72,12 +73,26 @@ class UpgradeRunInput(BaseModel):
     canary_command: list[str] = Field(min_length=1, max_length=30)
     nearby_command: list[str] | None = Field(default=None, max_length=30)
     changelog_notes: str = Field(default="", max_length=10000)
+    runner_requirements: dict = Field(default_factory=dict)
 
 
 class RunnerRegistrationInput(BaseModel):
     organization_id: str
     name: str = Field(min_length=2, max_length=200)
+    mode: Literal["self-hosted", "managed"] = "self-hosted"
     capabilities: dict = Field(default_factory=dict)
+
+
+class RunnerCompletionInput(BaseModel):
+    summary: str = Field(min_length=1, max_length=20000)
+    bundle: dict
+
+
+class GitHubInstallationInput(BaseModel):
+    organization_id: str
+    installation_id: str = Field(min_length=1, max_length=120)
+    account_login: str = Field(min_length=1, max_length=200)
+    permissions: dict = Field(default_factory=dict)
 
 
 class PullRequestAuditInput(BaseModel):
@@ -132,6 +147,23 @@ class AppState:
         self.store = RunStore(self.database, artifact_root)
         redis_url = os.environ.get("REPROVE_REDIS_URL")
         self.dispatcher = RedisJobDispatcher(redis_url) if redis_url else LocalJobDispatcher(self.store)
+        self.github_app = GitHubAppAuth.from_environment()
+
+
+def bundle_from_payload(raw: dict) -> EvidenceBundle:
+    """Strictly reconstruct a remotely produced evidence bundle before sealing it."""
+    try:
+        gates = []
+        for gate in raw.get("gates", []):
+            commands = [CommandResult(**command) for command in gate.get("runs", [])]
+            gates.append(GateResult(gate=Gate(gate["gate"]), passed=bool(gate["passed"]), summary=gate["summary"], runs=commands, details=gate.get("details", {})))
+        return EvidenceBundle(
+            repository=raw["repository"], claim=raw["claim"], verdict=Verdict(raw["verdict"]), created_at=raw.get("created_at") or datetime.now(UTC).isoformat(),
+            tests=list(raw.get("tests", [])), gates=gates, narrative=raw.get("narrative", ""), confidence=int(raw.get("confidence", 0)),
+            warnings=list(raw.get("warnings", [])), proposed_questions=list(raw.get("proposed_questions", [])), artifacts=dict(raw.get("artifacts", {})),
+        )
+    except (KeyError, TypeError, ValueError) as error:
+        raise HTTPException(status_code=422, detail=f"Invalid evidence bundle: {error}") from error
 
 
 def create_app(database_url: str | None = None, artifact_root: str | Path | None = None) -> FastAPI:
@@ -174,7 +206,10 @@ def create_app(database_url: str | None = None, artifact_root: str | Path | None
             repository = session.get(RepositoryRecord, payload.repository_id)
             if not repository:
                 raise HTTPException(status_code=404, detail="Repository not found.")
-        run = service.store.create_run(payload.repository_id, kind="issue_prover", claim=payload.claim, source={"issue_number": payload.issue_number}, request=payload.model_dump())
+        request = payload.model_dump()
+        if repository.runner_mode == "managed":
+            request["runner_requirements"] = {"network_isolated": True, "read_only_source": True} | request["runner_requirements"]
+        run = service.store.create_run(payload.repository_id, kind="issue_prover", claim=payload.claim, source={"issue_number": payload.issue_number}, request=request)
         if start and repository.runner_mode == "hosted":
             service.dispatcher.submit_issue(run.id, payload.repository_path, payload.claim, payload.evidence_tests, payload.test_command, payload.questions)
         return run
@@ -217,7 +252,10 @@ def create_app(database_url: str | None = None, artifact_root: str | Path | None
             if not repository:
                 raise HTTPException(status_code=404, detail="Repository not found.")
         claim = f"Upgrading {payload.dependency} from {payload.old_version} to {payload.new_version} preserves pinned behavior."
-        run = service.store.create_run(payload.repository_id, kind="upgrade_verifier", claim=claim, request=payload.model_dump())
+        request = payload.model_dump()
+        if repository.runner_mode == "managed":
+            request["runner_requirements"] = {"network_isolated": True, "read_only_source": True} | request["runner_requirements"]
+        run = service.store.create_run(payload.repository_id, kind="upgrade_verifier", claim=claim, request=request)
         proposal = UpgradeProposal(payload.dependency, payload.old_version, payload.new_version, ChangeSet(payload.files, f"Upgrade {payload.dependency}"), payload.canary_tests, payload.canary_command, payload.changelog_notes)
         if repository.runner_mode == "hosted":
             service.dispatcher.submit_upgrade(run.id, payload.repository_path, proposal, payload.nearby_command)
@@ -229,8 +267,12 @@ def create_app(database_url: str | None = None, artifact_root: str | Path | None
             if not session.get(OrganizationRecord, payload.organization_id):
                 raise HTTPException(status_code=404, detail="Organization not found.")
         lease = new_lease("pending")
-        runner = service.store.register_runner(payload.organization_id, payload.name, payload.capabilities, token_hash(lease.token))
-        return {"runner_id": runner.id, "lease_token": lease.token, "expires_in_seconds": lease.expires_in_seconds}
+        runner = service.store.register_runner(payload.organization_id, payload.name, payload.mode, payload.capabilities, token_hash(lease.token))
+        return {"runner_id": runner.id, "mode": runner.mode, "lease_token": lease.token, "expires_in_seconds": lease.expires_in_seconds, "contract": {"source_mount": "read-only", "network": "disabled by default", "completion": "runner may only complete its own active lease"}}
+
+    @app.get("/v1/runners")
+    def list_runners(organization_id: str | None = None, service=Depends(get_state)):
+        return [{"id": runner.id, "organization_id": runner.organization_id, "name": runner.name, "mode": runner.mode, "capabilities": runner.capabilities, "last_seen_at": runner.last_seen_at.isoformat()} for runner in service.store.list_runners(organization_id)]
 
     @app.post("/v1/runners/{runner_id}/heartbeat")
     def heartbeat_runner(runner_id: str, request: Request, service=Depends(get_state)):
@@ -247,6 +289,14 @@ def create_app(database_url: str | None = None, artifact_root: str | Path | None
         if not run:
             return JSONResponse(status_code=204, content=None)
         return run_payload(run) | {"job": run.request}
+
+    @app.post("/v1/runners/{runner_id}/runs/{run_id}/complete")
+    def complete_runner_run(runner_id: str, run_id: str, payload: RunnerCompletionInput, request: Request, service=Depends(get_state)):
+        token = request.headers.get("authorization", "").removeprefix("Bearer ").strip()
+        if not token or not service.store.complete_leased_run(runner_id, token_hash(token), run_id, bundle_from_payload(payload.bundle), payload.summary):
+            raise HTTPException(status_code=409, detail="Run is not actively leased by this runner.")
+        run = service.store.get_run(run_id)
+        return run_payload(run) if run else {"id": run_id, "status": "completed"}
 
     @app.post("/v1/audits/pull-request")
     def audit_pr(payload: PullRequestAuditInput, service=Depends(get_state)):
@@ -420,6 +470,19 @@ def create_app(database_url: str | None = None, artifact_root: str | Path | None
             "tasks": [{"id": task.id, "title": task.title, "repository": task.repository, "issue_url": task.issue_url, "status": task.status, "notes": task.notes} for task in tasks],
         }
 
+    @app.get("/v1/github/app/status")
+    def github_app_status(service=Depends(get_state)):
+        """Configuration-only status: credentials and installation tokens are never returned."""
+        return {"configured": service.github_app is not None, "webhook_secret_configured": bool(os.environ.get("REPROVE_GITHUB_WEBHOOK_SECRET")), "authentication": "GitHub App JWT -> short-lived installation token" if service.github_app else "Configure REPROVE_GITHUB_APP_ID and REPROVE_GITHUB_APP_PRIVATE_KEY", "outbound_writes": False}
+
+    @app.post("/v1/github/installations", status_code=status.HTTP_201_CREATED)
+    def bind_github_installation(payload: GitHubInstallationInput, service=Depends(get_state), _=Depends(require_control_plane_access)):
+        with service.database.session() as session:
+            if not session.get(OrganizationRecord, payload.organization_id):
+                raise HTTPException(status_code=404, detail="Organization not found.")
+        installation = service.store.upsert_github_installation(payload.organization_id, payload.installation_id, payload.account_login, payload.permissions)
+        return {"id": installation.id, "installation_id": installation.github_installation_id, "account_login": installation.github_account_login, "permissions": installation.permissions, "token_storage": "never persisted"}
+
     @app.post("/v1/github/issue-preview")
     def github_issue_preview(payload: IssuePreviewInput):
         """Read public issue metadata only; never creates any GitHub resource."""
@@ -442,10 +505,21 @@ def create_app(database_url: str | None = None, artifact_root: str | Path | None
             ],
         }
 
+    @app.get("/v1/evaluations/swe-bench")
+    def swe_bench_evaluation():
+        """Published readiness report, intentionally separate from a benchmark score."""
+        report_path = Path(__file__).parent.parent / "reports" / "swe-bench-pilot.json"
+        shortlist_path = Path(__file__).parent.parent / "benchmarks" / "swebench-shortlist.json"
+        if not report_path.exists() or not shortlist_path.exists():
+            raise HTTPException(status_code=404, detail="SWE-bench readiness report is not published.")
+        return {"report": json.loads(report_path.read_text()), "shortlist": json.loads(shortlist_path.read_text()), "read_only": True}
+
     @app.post("/v1/github/webhooks", status_code=status.HTTP_202_ACCEPTED)
     async def github_webhook(request: Request, x_github_event: str = Header(default=""), x_hub_signature_256: str = Header(default="")):
         body = await request.body()
         secret = os.environ.get("REPROVE_GITHUB_WEBHOOK_SECRET")
+        if app.state.reprove.github_app and not secret:
+            raise HTTPException(status_code=503, detail="GitHub App webhook intake is disabled until REPROVE_GITHUB_WEBHOOK_SECRET is configured.")
         if secret:
             expected = "sha256=" + hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
             if not hmac.compare_digest(expected, x_hub_signature_256):
@@ -456,9 +530,17 @@ def create_app(database_url: str | None = None, artifact_root: str | Path | None
         if not service.store.record_webhook_delivery(delivery_id, x_github_event, payload):
             return {"accepted": True, "duplicate": True, "delivery_id": delivery_id}
         trigger = normalize_trigger(x_github_event, payload)
-        # The control plane records a verified delivery immediately. The GitHub worker
-        # later resolves the installation to a checked-out commit before any execution.
-        return {"accepted": True, "event": x_github_event, "delivery_id": delivery_id, "trigger": trigger.kind if trigger else None}
+        run = None
+        if trigger:
+            with service.database.session() as session:
+                repository = session.scalar(select(RepositoryRecord).where(RepositoryRecord.full_name == trigger.repository))
+                if repository and trigger.installation_id:
+                    repository.installation_id = trigger.installation_id
+                    session.commit()
+            if repository:
+                run = service.store.create_run(repository.id, kind="github_issue_intake", claim=trigger.claim or f"GitHub {trigger.kind} intake", source={"provider": "github", "issue_number": trigger.issue_number, "installation_id": trigger.installation_id, "delivery_id": delivery_id}, request={"trigger": trigger.kind, "runner_requirements": {"network_isolated": True, "read_only_source": True}})
+                service.store.transition(run.id, "awaiting_review", "GitHub trigger captured. A maintainer must pin a checkout and evidence command before execution.")
+        return {"accepted": True, "event": x_github_event, "delivery_id": delivery_id, "signature_verified": bool(secret), "trigger": trigger.kind if trigger else None, "run_id": run.id if run else None, "routing": "awaiting_review" if run else "repository_not_connected" if trigger else "not_actionable", "outbound_writes": False}
 
     dashboard_path = Path(__file__).parent.parent / "dashboard" / "index.html"
     @app.get("/", include_in_schema=False)
