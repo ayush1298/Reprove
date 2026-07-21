@@ -63,8 +63,8 @@ evidence artifacts in SQLite locally, while using the same SQL schema as the
 PostgreSQL deployment. To exercise the complete local flow, open **Start
 evidence run**, keep the seeded checkout values, and queue the run; the Runs
 and Proof vault views will show its gates and immutable bundle. See
-[the two-minute demo](docs/DEMO.md) for CLI flows and [operations](docs/OPERATIONS.md)
-for Docker, GitHub webhooks, managed runners, and retention guidance.
+[operations](docs/OPERATIONS.md) for Docker, GitHub webhooks, managed runners,
+and retention guidance.
 
 ### Optional container control plane
 
@@ -88,7 +88,7 @@ evaluation. It is not required for the normal developer demo.
 - `GET /v1/evaluations/swe-bench` for the published, intentionally unscored SWE-bench readiness report.
 - `GET /v1/evaluations/public-issue-replay` for the measured public upstream pilot, always including its sample size.
 
-Run the full demonstrated flows in [docs/DEMO.md](docs/DEMO.md). The control room is served by `reprove-api` at `http://127.0.0.1:8000`.
+The control room is served by `reprove-api` at `http://127.0.0.1:8000`.
 
 ### Measured evaluation proof
 
@@ -110,7 +110,7 @@ issue / upgrade claim
  evidence bundle + issue comment + draft PR body
 ```
 
-The model integration only produces a typed proposal; it cannot override any execution gate. See [docs/DEVPOST.md](docs/DEVPOST.md) for positioning and [docs/EVALUATION.md](docs/EVALUATION.md) for honest benchmark methodology.
+The model integration only produces a typed proposal; it cannot override any execution gate. See [docs/EVALUATION.md](docs/EVALUATION.md) for the honest benchmark methodology.
 
 ## Built with Codex and GPT-5.6
 

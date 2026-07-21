@@ -10,3 +10,7 @@ build/
 *.egg-info/
 .DS_Store
 outputs/
+# Local-only hackathon submission materials
+docs/DEMO.md
+docs/DEVPOST.md
+docs/demo-narration.txt
