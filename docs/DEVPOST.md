@@ -28,6 +28,10 @@ Reprove is a Python/FastAPI control plane with a local-first CLI, durable run/ev
 
 The dashboard is deliberately focused on Mission control, Runs, Proof vault, Evaluation, and Connections. It exposes evidence, GitHub App readiness, runner capacity, and evaluation provenance without auto-publishing anything upstream.
 
+### Built with Codex and GPT-5.6
+
+We used OpenAI Codex with GPT-5.6 as a development collaborator to plan and implement the product, refine the FastAPI control plane and evidence cockpit, strengthen test coverage, and shape the evaluation and submission documentation. This was development assistance, not an unchecked runtime decision-maker: Reprove has no required OpenAI API key or runtime model dependency. A model/provider can only supply a typed proposal; deterministic execution, immutable-test, mutation, and blast-radius gates decide whether any result becomes evidence.
+
 ## Accomplishments that we're proud of
 
 We ran a real public upstream issue-replay pilot, not just a synthetic demo. For [pytest #11706](https://github.com/pytest-dev/pytest/issues/11706), the accepted upstream regression scenario failed **3/3** on the pinned buggy revision and passed on the accepted upstream fix ([PR #12279](https://github.com/pytest-dev/pytest/pull/12279)). The report shows:
@@ -47,6 +51,31 @@ An official SWE-bench run is Docker-based and resource-intensive. This ARM devel
 ## What we learned
 
 Evaluation quality is product quality for an evidence tool. A percentage without a task count, pinned revisions, a gold control, and source-integrity checks is not proof. Treating invalid or environment-confounded runs as explicit outcomes made the project more credible and made the demo easier to explain.
+
+## Installation, platforms, and testing
+
+Reprove is a Python developer tool. Install it with Python **3.11+**:
+
+```bash
+git clone <your-fork-or-repository-url>
+cd Reprove
+python -m pip install -e '.[dev]'
+```
+
+It has been exercised on macOS and Linux. Windows users should use WSL2 because the production isolation contract relies on Linux Docker controls. Docker is optional for the local CLI/API/dashboard; it is required only for the optional multi-service control plane and hardened runner workflow.
+
+```bash
+# Run the safety, API, integration, runner, and evaluation suite
+python -m pytest -p no:rerunfailures
+
+# Confirm the current repository has a supported Python or Node test setup
+python -m reprove.cli inspect .
+
+# Start the dashboard, then open http://127.0.0.1:8000
+reprove-api
+```
+
+For a complete end-to-end local demonstration, use **Start evidence run** in the dashboard with its seeded values, then inspect the resulting gates in Runs and its durable JSON record in Proof vault. The [two-minute demo](DEMO.md) includes equivalent CLI commands, and [operations](OPERATIONS.md) documents Docker, webhooks, and managed runners.
 
 ## What's next
 

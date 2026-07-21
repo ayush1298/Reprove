@@ -19,27 +19,61 @@ Open [`dashboard/index.html`](dashboard/index.html) for the polished evidence co
 - GitHub App JWT-to-installation-token authentication, webhook normalization/deduplication with review-only issue routing, AI-PR audit core, and hosted/self-hosted/managed isolated-runner contracts.
 - Docker-hardened execution command, measured public issue-replay pilot, evaluation harness, CI, and hackathon dashboard.
 
-## Run it
+## Installation and local use
 
-Requires Python 3.11+ and pytest for the demos.
+### Requirements
+
+- Python **3.11+** and `pip`
+- Git, for inspecting repositories and running the public replay locally
+- Docker Desktop or Docker Engine only for the optional multi-service control plane and hardened runner workflow
+
+Reprove has been exercised on macOS and Linux. Windows users should run it in
+**WSL2**; the production isolation contract relies on Linux Docker features
+(read-only mounts, dropped capabilities, and network isolation). The local
+CLI, API, dashboard, and unit suite do not require Docker.
+
+### Install
 
 ```bash
+git clone <your-fork-or-repository-url>
+cd Reprove
 python -m pip install -e '.[dev]'
+```
+
+### Verify the installation
+
+```bash
 python -m pytest -p no:rerunfailures
 python -m reprove.cli inspect .
 ```
+
+The first command runs the repository's safety, API, integration, runner, and
+evaluation tests. The second reports whether the current checkout has a
+supported Python or Node test configuration.
 
 ### Run the live evidence cockpit
 
 ```bash
 reprove-api
-# visit http://127.0.0.1:8000
+# open http://127.0.0.1:8000
 ```
 
 The cockpit persists organizations, repositories, runs, events, and redacted
 evidence artifacts in SQLite locally, while using the same SQL schema as the
-PostgreSQL deployment. See [operations](docs/OPERATIONS.md) for containers,
-GitHub webhooks, and retention guidance.
+PostgreSQL deployment. To exercise the complete local flow, open **Start
+evidence run**, keep the seeded checkout values, and queue the run; the Runs
+and Proof vault views will show its gates and immutable bundle. See
+[the two-minute demo](docs/DEMO.md) for CLI flows and [operations](docs/OPERATIONS.md)
+for Docker, GitHub webhooks, managed runners, and retention guidance.
+
+### Optional container control plane
+
+```bash
+docker compose up --build
+```
+
+This starts FastAPI, PostgreSQL, Redis, and the queue worker for local
+evaluation. It is not required for the normal developer demo.
 
 ### Control-plane API
 
@@ -77,6 +111,20 @@ issue / upgrade claim
 ```
 
 The model integration only produces a typed proposal; it cannot override any execution gate. See [docs/DEVPOST.md](docs/DEVPOST.md) for positioning and [docs/EVALUATION.md](docs/EVALUATION.md) for honest benchmark methodology.
+
+## Built with Codex and GPT-5.6
+
+OpenAI Codex, using GPT-5.6, was used as a development collaborator for this
+hackathon project: planning the evidence-first product flow, implementing and
+refining the FastAPI/API and dashboard experience, expanding test coverage,
+and improving the developer documentation and evaluation presentation.
+
+That assistance is deliberately separated from the product's trust boundary:
+Reprove does **not** claim that Codex or GPT-5.6 autonomously proves a fix, and
+the shipped local workflow has no required OpenAI API key or runtime model
+dependency. Any model/provider proposal is treated as untrusted input until it
+passes the deterministic execution, immutability, mutation, and blast-radius
+gates.
 
 ## Security posture
 
