@@ -5,7 +5,7 @@
 3. Show `examples/seeded-repo/.reprove/issue-42/issue-comment.md` and `pull-request.md`.
 4. Show the refusal unit test (`tests/test_safety.py`): changing a test or weakening its assertions is rejected before apply.
 5. Run the upgrade command. Its old-behavior canary turns red after the bump even though this represents a semantic default change, not a compile error.
-6. Close on `docs/EVALUATION.md`: the demo is backed by a gold-patch evaluation protocol, not a dashboard-only claim.
+6. Close on `reports/public-issue-replay-pilot.json`: the demo has a measured public upstream replay (3/3 fail on the pinned baseline, pass on the accepted fix; N=1), alongside a clearly unscored SWE-bench follow-on protocol.
 
 ```bash
 python -m reprove.cli verify-fix --repo examples/seeded-repo \

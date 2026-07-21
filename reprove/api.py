@@ -514,6 +514,14 @@ def create_app(database_url: str | None = None, artifact_root: str | Path | None
             raise HTTPException(status_code=404, detail="SWE-bench readiness report is not published.")
         return {"report": json.loads(report_path.read_text()), "shortlist": json.loads(shortlist_path.read_text()), "read_only": True}
 
+    @app.get("/v1/evaluations/public-issue-replay")
+    def public_issue_replay_evaluation():
+        """Measured public issue replay; rates always include their small sample size."""
+        report_path = Path(__file__).parent.parent / "reports" / "public-issue-replay-pilot.json"
+        if not report_path.exists():
+            raise HTTPException(status_code=404, detail="Public issue replay report is not published.")
+        return {"report": json.loads(report_path.read_text()), "read_only": True}
+
     @app.post("/v1/github/webhooks", status_code=status.HTTP_202_ACCEPTED)
     async def github_webhook(request: Request, x_github_event: str = Header(default=""), x_hub_signature_256: str = Header(default="")):
         body = await request.body()

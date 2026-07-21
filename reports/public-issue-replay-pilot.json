@@ -1,0 +1,45 @@
+{
+  "report_version": "1.0.0",
+  "report_type": "Public upstream issue-replay pilot",
+  "generated_at": "2026-07-21T17:28:51Z",
+  "scope": "N=1 pinned upstream issue. This is a demonstrator of Reprove's evidence contract, not a statistically general performance claim.",
+  "task": {
+    "id": "pytest-11706-replay",
+    "issue_url": "https://github.com/pytest-dev/pytest/issues/11706",
+    "accepted_fix_url": "https://github.com/pytest-dev/pytest/pull/12279",
+    "buggy_commit": "23906106968eb95afbd61adfbc7bbb795fc9aaa9",
+    "gold_commit": "4c5298c3954efa71436364efaf531d3851a6aeb4",
+    "runtime": "CPython 3.8.20 on macOS arm64",
+    "regression_test": "benchmarks/replay/pytest_11706_regression.py"
+  },
+  "measurements": {
+    "tasks": 1,
+    "reproduced": 1,
+    "valid_under_gold_patch": 1,
+    "deterministic": 1,
+    "tracked_source_unchanged": 1,
+    "reproduce_rate_percent": 100.0,
+    "gold_validity_rate_percent": 100.0,
+    "determinism_rate_percent": 100.0,
+    "source_integrity_rate_percent": 100.0,
+    "buggy_exit_codes": [1, 1, 1],
+    "gold_exit_code": 0,
+    "repetitions": 3
+  },
+  "integrity": {
+    "remote_writes": false,
+    "test_outside_source_tree": true,
+    "tracked_source_check": "git diff --quiet on both pinned worktrees after execution",
+    "raw_log_sha256": {
+      "buggy_run_1": "bc838ab79e660940f64348b62ea74a6af663ef0d397ac035d7ebe29c51364425",
+      "buggy_run_2": "2e41391f5f42ec978584b560c857546d62048469301fcb484c9481d3fcfe946d",
+      "buggy_run_3": "d5c3d15a6f066d3881b16bdf4391a1689a427843da9fec3365991b0d2c18bbcf",
+      "gold_run": "b161ae68ca0d8b80f3360510ef5993b8b56679e4d84b1730a45b684eaad8935e"
+    }
+  },
+  "limitations": [
+    "The regression scenario is the accepted upstream test; this measures execution, determinism, and gold-patch validation, not autonomous test generation quality.",
+    "N=1 is deliberately displayed beside every rate. Expand to a predeclared multi-project corpus before comparing systems.",
+    "The official Docker-based SWE-bench evaluator was not run on this ARM machine because Docker was unavailable and free storage was below the official recommendation."
+  ]
+}

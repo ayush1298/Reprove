@@ -17,7 +17,7 @@ Open [`dashboard/index.html`](dashboard/index.html) for the polished evidence co
 - Upgrade verifier with old-behavior canaries for silent breaking changes.
 - FastAPI control plane with durable organizations, repositories, runs, live events, redacted 30-day artifacts, SHA-256 evidence manifests, and a responsive evidence cockpit.
 - GitHub App JWT-to-installation-token authentication, webhook normalization/deduplication with review-only issue routing, AI-PR audit core, and hosted/self-hosted/managed isolated-runner contracts.
-- Docker hardened execution command, seeded demos, evaluation harness, CI, and hackathon dashboard.
+- Docker-hardened execution command, measured public issue-replay pilot, evaluation harness, CI, and hackathon dashboard.
 
 ## Run it
 
@@ -52,10 +52,13 @@ GitHub webhooks, and retention guidance.
 - `POST /v1/github/webhooks` for signed GitHub delivery intake, plus `GET /v1/github/app/status` for safe configuration visibility;
 - `POST /v1/runners`, `/v1/runners/{id}/leases`, and `/v1/runners/{id}/runs/{run_id}/complete` for capability-matched managed execution;
 - `GET /v1/evaluations/swe-bench` for the published, intentionally unscored SWE-bench readiness report.
+- `GET /v1/evaluations/public-issue-replay` for the measured public upstream pilot, always including its sample size.
 
-Run the full demonstrated flows in [docs/DEMO.md](docs/DEMO.md). To view the control room, open [dashboard/index.html](dashboard/index.html) in a browser.
-The six-slide hackathon pitch is available at [reprove-hackathon-deck.pptx](outputs/reprove-hackathon-deck.pptx).
-For a ready-to-submit fallback walkthrough, use the narrated [reprove-demo.mp4](outputs/reprove-demo.mp4) (2:16).
+Run the full demonstrated flows in [docs/DEMO.md](docs/DEMO.md). The control room is served by `reprove-api` at `http://127.0.0.1:8000`.
+
+### Measured evaluation proof
+
+The first public upstream issue-replay pilot validates `pytest-dev/pytest#11706` against its accepted fix: **3/3 deterministic failures on the pinned buggy revision, then a pass on the accepted fix**. That is **100% reproduce rate, gold validity, determinism, and tracked-source integrity at N=1**—a small, honest pilot, not a generalized model-performance claim. See the [measured report](reports/public-issue-replay-pilot.json), [exact regression scenario](benchmarks/replay/pytest_11706_regression.py), and [evaluation protocol](docs/EVALUATION.md).
 
 ## Architecture
 

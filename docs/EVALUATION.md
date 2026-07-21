@@ -14,6 +14,12 @@ The initial public candidates are in [`benchmarks/candidates.jsonl`](../benchmar
 
 The first scored run uses the official evaluator with `sympy__sympy-20590`, pinned image digests, immutable source/test digests, network disabled after image provisioning, and checked-in predictions/evaluator JSON. The official [SWE-bench repository](https://github.com/SWE-bench/SWE-bench) documents the evaluator and task format; its [known-invalid-instance notice](https://github.com/SWE-bench/SWE-bench/issues/267) informs the quarantine list. The [test-manipulation report](https://github.com/SWE-bench/SWE-bench/issues/538) is why Reprove includes an explicit integrity-control task.
 
+## Measured public issue-replay pilot
+
+[`reports/public-issue-replay-pilot.json`](../reports/public-issue-replay-pilot.json) records a real execution against [pytest issue #11706](https://github.com/pytest-dev/pytest/issues/11706) and its accepted reintroduced fix [PR #12279](https://github.com/pytest-dev/pytest/pull/12279). The externalized upstream regression scenario failed **3/3** on the pinned buggy revision and passed on the accepted fixed revision: **100% reproduce rate, 100% gold validity, 100% determinism, and 100% tracked-source integrity (N=1)**.
+
+This is deliberately framed as an N=1 proof of the execution/evidence contract—not a claim about autonomous test generation or a generalized repair rate. The exact regression test lives in [`benchmarks/replay/pytest_11706_regression.py`](../benchmarks/replay/pytest_11706_regression.py), outside both upstream worktrees. The raw-log hashes, revisions, runtime, and command outcome are recorded in the report.
+
 ## Reproducible scoring
 
 Promote a reviewed candidate to `ready` only after adding the pre-fix commit, accepted-fix commit, compatible license, two local worktree paths, and a narrow deterministic command. Then run:

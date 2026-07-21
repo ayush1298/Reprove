@@ -68,6 +68,17 @@ def test_swe_bench_readiness_report_never_claims_an_unrun_score(tmp_path):
     assert payload["shortlist"]["quarantined"]
 
 
+def test_public_issue_replay_exposes_measured_rates_with_sample_size(tmp_path):
+    app = create_app("sqlite://", tmp_path / "artifacts")
+    with TestClient(app) as client:
+        response = client.get("/v1/evaluations/public-issue-replay")
+    assert response.status_code == 200
+    report = response.json()["report"]
+    assert report["measurements"]["tasks"] == 1
+    assert report["measurements"]["gold_validity_rate_percent"] == 100.0
+    assert "N=1" in report["scope"]
+
+
 def test_public_issue_preview_is_get_only_intake(tmp_path, monkeypatch):
     monkeypatch.setattr("reprove.api.fetch_public_issue", lambda _: PublicIssue(
         repository="pytest-dev/pytest", number=11706, title="Fixture teardown", body="Minimal example", html_url="https://github.com/pytest-dev/pytest/issues/11706",

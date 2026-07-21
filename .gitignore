@@ -8,3 +8,5 @@ reprove.db
 dist/
 build/
 *.egg-info/
+.DS_Store
+outputs/
