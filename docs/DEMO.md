@@ -1,4 +1,8 @@
-# Two-minute demo script
+# Three-minute demo guide
+
+For the final, word-for-word recording script—including the exact screens to
+show and the Codex/GPT-5.6 attribution—use [demo-narration.txt](demo-narration.txt).
+It is timed to approximately 2 minutes and 50 seconds.
 
 1. Open `dashboard/index.html`. Lead with: **“No fix without a failing test.”**
 2. Run the issue command below. Point out five red evidence runs, then five green runs, the mutation kill, and the branch-ready artifacts.
